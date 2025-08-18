@@ -1,0 +1,57 @@
+# C++/CMake
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.out
+*.a
+*.lib
+*.pch
+*.pdb
+*.ilk
+*.manifest
+*.dSYM/
+*.d
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+*.user
+*.DS_Store
+
+# Visual Studio Code
+.vscode/
+.code-workspace
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node
+node_modules/
+
+# Dawn third_party build artifacts
+extern/dawn/third_party/build/
+extern/dawn/build/
+extern/dawn/out/
+
+# Misc
+*.orig
+*.rej
+*.sublime-workspace
+*.sublime-project
+*.idea/
+*.iml
+*.ipynb_checkpoints/
