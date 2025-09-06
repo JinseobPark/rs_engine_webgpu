@@ -1,0 +1,24 @@
+{
+  "name": "rs_engine_webgpu",
+  "version": "1.0.0",
+  "description": "A cross-platform WebGPU triangle rendering application with both native (Dawn) and web (Emscripten) versions.",
+  "main": "index.js",
+  "scripts": {
+    "start": "serve build_web/apps/viewer"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JinseobPark/rs_engine_webgpu.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JinseobPark/rs_engine_webgpu/issues"
+  },
+  "homepage": "https://github.com/JinseobPark/rs_engine_webgpu#readme",
+  "devDependencies": {
+    "serve": "^14.2.5"
+  }
+}
