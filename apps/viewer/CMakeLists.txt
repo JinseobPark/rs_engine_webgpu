@@ -26,6 +26,7 @@ if(BUILD_WEB)
         -sTOTAL_MEMORY=64MB
         -sEXPORTED_RUNTIME_METHODS=["ccall","cwrap"]
         --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/index.html
+        -lhtml5
     )
     
     # Copy HTML file to build directory

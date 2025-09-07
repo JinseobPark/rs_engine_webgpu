@@ -5823,11 +5823,6 @@ async function createWasm() {
       }
     };
 
-  var _wgpuSurfacePresent = (surfaceId) => {
-      // TODO: This could probably be emulated with ASYNCIFY.
-      abort('wgpuSurfacePresent is unsupported (use requestAnimationFrame via html5.h instead)');
-    };
-
   var _wgpuSurfaceRelease = (id) => WebGPU.mgrSurface.release(id);
 
   
@@ -6982,8 +6977,6 @@ var wasmImports = {
   wgpuSurfaceConfigure: _wgpuSurfaceConfigure,
   /** @export */
   wgpuSurfaceGetCurrentTexture: _wgpuSurfaceGetCurrentTexture,
-  /** @export */
-  wgpuSurfacePresent: _wgpuSurfacePresent,
   /** @export */
   wgpuSurfaceRelease: _wgpuSurfaceRelease,
   /** @export */

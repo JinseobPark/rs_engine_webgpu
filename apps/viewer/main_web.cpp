@@ -195,9 +195,7 @@ fn fs_main() -> @location(0) vec4f {
 
         wgpu::CommandBufferDescriptor cmdBufferDesc = {};
         wgpu::CommandBuffer commands = encoder.Finish(&cmdBufferDesc);
-        device.GetQueue().Submit(1, &commands);
-
-        surface.Present();
+    device.GetQueue().Submit(1, &commands);
     }
 
     static void renderLoop(void* userData) {
@@ -210,9 +208,8 @@ fn fs_main() -> @location(0) vec4f {
     }
 
     bool init() {
-        // Create WebGPU instance
-        wgpu::InstanceDescriptor instanceDesc = {};
-        instance = wgpu::CreateInstance(&instanceDesc);
+        // Create WebGPU instance (emscripten requires nullptr)
+        instance = wgpu::CreateInstance(nullptr);
         if (!instance) {
             std::cerr << "Failed to create WebGPU instance" << std::endl;
             return false;
