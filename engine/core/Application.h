@@ -28,7 +28,7 @@ protected:
     wgpu::Device device = nullptr;
     wgpu::Surface surface = nullptr;
     wgpu::RenderPipeline pipeline = nullptr;
-    
+
     // 공통 상태
     uint32_t windowWidth = 800;
     uint32_t windowHeight = 600;
@@ -37,31 +37,31 @@ protected:
 
 public:
     virtual ~Application() = default;
-    
+
     // 플랫폼별 구현 필요
     virtual bool initPlatform() = 0;
     virtual void handleEvents() = 0;
     virtual void cleanup() = 0;
-    
+
     // 공통 WebGPU 초기화 (플랫폼별로 다름)
     virtual bool initWebGPU() = 0;
-    
+
     // 공통 구현
     bool createRenderPipeline();
     void configureSurface();
     void render();
-    
+
     // 애플리케이션 로직 (사용자 구현)
-    virtual bool init() { 
-        return initPlatform() && initWebGPU() && createRenderPipeline() && onInit(); 
+    virtual bool init() {
+        return initPlatform() && initWebGPU() && createRenderPipeline() && onInit();
     }
     virtual bool onInit() { return true; }
     virtual void update(float deltaTime) {}
     virtual void draw() { render(); }
-    
+
     // 메인 루프
     void run();
-    
+
     // 상태 확인
     bool getShouldClose() const { return shouldClose; }
     void setShouldClose(bool value) { shouldClose = value; }

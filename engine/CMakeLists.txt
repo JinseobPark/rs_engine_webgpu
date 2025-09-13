@@ -48,21 +48,24 @@ else()
         ${DAWN_ROOT}/third_party/glfw/include
     )
     
-    # Find Dawn libraries dynamically
-    find_library(DAWN_NATIVE_LIB dawn_native PATHS ${DAWN_BUILD}/src/dawn/native NO_DEFAULT_PATH)
-    find_library(DAWN_PROC_LIB dawn_proc PATHS ${DAWN_BUILD}/src/dawn NO_DEFAULT_PATH)
-    find_library(DAWN_COMMON_LIB dawn_common PATHS ${DAWN_BUILD}/src/dawn/common NO_DEFAULT_PATH)
-    find_library(DAWN_PLATFORM_LIB dawn_platform PATHS ${DAWN_BUILD}/src/dawn/platform NO_DEFAULT_PATH)
-    find_library(DAWN_WIRE_LIB dawn_wire PATHS ${DAWN_BUILD}/src/dawn/wire NO_DEFAULT_PATH)
-    find_library(GLFW_LIB glfw3 PATHS ${DAWN_BUILD}/third_party/glfw/src NO_DEFAULT_PATH)
-    
+    # Find and link all required Dawn and dependency libraries
+    file(GLOB DAWN_LIBS
+        "${DAWN_BUILD}/src/dawn/native/libdawn_native.a"
+        "${DAWN_BUILD}/src/dawn/libdawn_proc.a"
+        "${DAWN_BUILD}/src/dawn/common/libdawn_common.a"
+        "${DAWN_BUILD}/src/dawn/platform/libdawn_platform.a"
+        "${DAWN_BUILD}/src/dawn/wire/libdawn_wire.a"
+        "${DAWN_BUILD}/src/dawn/glfw/libdawn_glfw.a"
+        "${DAWN_BUILD}/third_party/glfw/src/libglfw3.a"
+    )
+
+    file(GLOB ABSEIL_LIBS "${DAWN_BUILD}/third_party/abseil/absl/*/libabsl_*.a")
+    file(GLOB TINT_LIBS "${DAWN_BUILD}/src/tint/libtint*.a")
+
     target_link_libraries(rs_engine_webgpu PUBLIC
-        ${DAWN_NATIVE_LIB}
-        ${DAWN_PROC_LIB}
-        ${DAWN_COMMON_LIB}
-        ${DAWN_PLATFORM_LIB}
-        ${DAWN_WIRE_LIB}
-        ${GLFW_LIB}
+        ${DAWN_LIBS}
+        ${ABSEIL_LIBS}
+        ${TINT_LIBS}
     )
     
     # Add macOS frameworks

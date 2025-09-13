@@ -3,6 +3,7 @@
 #include <dawn/native/DawnNative.h>
 #include <webgpu/webgpu_glfw.h>
 #include <vector>
+#include <memory>
 
 namespace rs_engine {
 
@@ -49,15 +50,21 @@ bool NativeApplication::initPlatform() {
 }
 
 bool NativeApplication::initWebGPU() {
-    // Initialize Dawn procedures
+    // Initialize Dawn procedures first
     DawnProcTable procs = dawn::native::GetProcs();
     dawnProcSetProcs(&procs);
 
-    // Create WebGPU instance
-    wgpu::InstanceDescriptor instanceDesc = {};
-    instance = wgpu::CreateInstance(&instanceDesc);
+    // Create native instance directly for better control
+    std::unique_ptr<dawn::native::Instance> nativeInstance = std::make_unique<dawn::native::Instance>();
+    if (!nativeInstance) {
+        std::cerr << "Failed to create Dawn native instance" << std::endl;
+        return false;
+    }
+
+    // Get WebGPU instance from native instance
+    instance = wgpu::Instance(nativeInstance->Get());
     if (!instance) {
-        std::cerr << "Failed to create WebGPU instance" << std::endl;
+        std::cerr << "Failed to get WebGPU instance from native instance" << std::endl;
         return false;
     }
 
@@ -68,8 +75,7 @@ bool NativeApplication::initWebGPU() {
         return false;
     }
 
-    // Get adapter
-    dawn::native::Instance* nativeInstance = reinterpret_cast<dawn::native::Instance*>(instance.Get());
+    // Enumerate adapters with the native instance directly
     std::vector<dawn::native::Adapter> adapters = nativeInstance->EnumerateAdapters();
     
     if (adapters.empty()) {

@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Build scrip        echo "🌍 Open your browser and go to: http://localhost:3377"
-        python3 -m http.server 3377for WebGPU Triangle Demo - Web Version
+# Build script for WebGPU Triangle Demo - Web Version
 
 echo "🌐 Building WebGPU Triangle Demo (Web Version)..."
 

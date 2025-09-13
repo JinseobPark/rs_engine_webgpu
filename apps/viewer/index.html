@@ -75,8 +75,10 @@
         // Check WebGPU support
         if (!navigator.gpu) {
             updateStatus('WebGPU is not supported in this browser', true);
+            console.log('WebGPU is not supported in this browser');
         } else {
             updateStatus('WebGPU supported! Loading application...');
+            console.log('WebGPU is supported in this browser');
         }
         
         // Override console methods to show status
@@ -96,7 +98,7 @@
             originalLog.apply(console, args);
         };
     </script>
-    
-    {{{ SCRIPT }}}
+
+    <script async type="text/javascript" src="viewer.js"></script>
 </body>
 </html>
