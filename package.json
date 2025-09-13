@@ -4,7 +4,23 @@
   "description": "A cross-platform WebGPU triangle rendering application with both native (Dawn) and web (Emscripten) versions.",
   "main": "index.js",
   "scripts": {
-    "start": "serve build_web/apps/viewer"
+    "dev": "./scripts/dev.sh",
+    "dev:simple": "npm run build && npm run preview",
+    "native": "./run_native.sh",
+    "dev:web": "./scripts/dev.sh",
+    "build": "npm run build:web",
+    "build:native": "./run_native.sh",
+    "build:web": "emcmake cmake -S . -B build_web -DBUILD_WEB=ON && cmake --build build_web --target viewer",
+    "build:fast": "cmake --build build_web --target viewer",
+    "preview": "cd build_web/apps/viewer && echo '🌍 Server running at http://localhost:3377' && python3 -m http.server 3377",
+    "start": "npm run preview",
+    "serve": "npm run preview",
+    "clean": "rm -rf build build_web",
+    "clean:web": "rm -rf build_web",
+    "clean:native": "rm -rf build",
+    "test:web": "npm run build:web && echo '✅ Web build test passed'",
+    "test:native": "./run_native.sh",
+    "help": "echo '🚀 Available commands:\n  npm run dev      - Start development with auto-reload\n  npm run build    - Build web version\n  npm run preview  - Serve built files\n  npm run native   - Run native application\n  npm run clean    - Clean all builds'"
   },
   "repository": {
     "type": "git",

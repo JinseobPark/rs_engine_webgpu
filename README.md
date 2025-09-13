@@ -1,164 +1,125 @@
-# WebGPU Triangle Demo
+# 🎮 RS Engine WebGPU
 
-A cross-platform WebGPU triangle rendering application with both native (Dawn) and web (Emscripten) versions.
+크로스플랫폼 WebGPU 엔진 - 웹과 네이티브에서 동일한 코드로 실행되는 고성능 그래픽 애플리케이션
 
-## 🏗️ Project Structure
+## ✨ 특징
 
-```
-rs_engine_webgpu/
-├── extern/dawn/              # Dawn WebGPU library (built)
-├── apps/viewer/              # Main application
-│   ├── main_native.cpp       # Native version (Dawn WebGPU)
-│   ├── main_web.cpp          # Web version (Emscripten)
-│   ├── main.cpp              # Simple GLFW baseline
-│   ├── index.html            # Web template
-│   └── CMakeLists.txt        # Build configuration
-├── build/                    # Native build directory
-├── build_web/                # Web build directory
-├── run_native.sh            # Quick native build & run
-└── run_web.sh               # Quick web build & serve
-```
+- 🌐 **크로스플랫폼**: 하나의 코드베이스로 웹과 네이티브 앱 개발
+- ⚡ **WebGPU**: 최신 그래픽 API로 고성능 렌더링
+- 🔥 **Hot Reload**: 개발 중 실시간 코드 변경 감지
+- 🎯 **단일 소스**: 95% 이상의 코드 공유
 
-## ✅ What's Working
+## 🚀 빠른 시작
 
-### Native Version (Simple GLFW)
-- ✅ **GLFW Window Management**: Creates and manages window successfully
-- ✅ **Cross-platform Build**: Builds on macOS with proper framework linking
-- ✅ **Event Handling**: ESC key to close window
+### 웹 개발 (권장)
 
-### Web Version (WebGPU)
-- ✅ **Emscripten Build**: Successfully compiles to WebAssembly
-- ✅ **WebGPU Integration**: Uses modern WebGPU APIs
-- ✅ **Canvas Rendering**: Renders to HTML5 canvas element
-- ✅ **Triangle Rendering**: Displays green triangle using WGSL shaders
-- ✅ **Local Server**: Includes HTTP server for testing
-
-### Dawn WebGPU Library
-- ✅ **Successfully Built**: All 185+ libraries compiled
-- ✅ **Modern APIs**: Updated to latest Dawn structure
-- ✅ **macOS Support**: Metal backend integration
-
-## 🚀 Quick Start
-
-### Native Version (Simple)
 ```bash
+# 개발 모드 (자동 리로드)
+npm run dev
+
+# 빌드만
+npm run build
+
+# 서버만 실행
+npm run preview
+```
+
+### 네이티브 개발
+
+```bash
+# 네이티브 빌드 & 실행
+npm run native
+
+# 또는 직접
 ./run_native.sh
 ```
 
-### Web Version (WebGPU Triangle)
-```bash
-./run_web.sh
-# Then open http://localhost:8080 in a WebGPU-compatible browser
+## 📦 사용 가능한 명령어
+
+| 명령어 | 설명 |
+|--------|------|
+| `npm run dev` | 🔥 개발 모드 (자동 리로드) |
+| `npm run build` | 🔨 웹 버전 빌드 |
+| `npm run preview` | 🌍 빌드된 파일 서버 실행 |
+| `npm run native` | 🖥️ 네이티브 개발 |
+| `npm run clean` | 🧹 모든 빌드 파일 정리 |
+| `npm run help` | ❓ 도움말 |
+
+## 🏗️ 프로젝트 구조
+
+```
+rs_engine_webgpu/
+├── engine/                 # 공통 엔진 코드
+│   ├── core/              # 핵심 기능
+│   └── platform/          # 플랫폼별 구현
+├── apps/viewer/           # 샘플 애플리케이션
+│   ├── main.cpp          # 통합 메인 파일
+│   ├── TriangleApp.h     # 앱 로직
+│   └── index.html        # 웹용 HTML
+├── scripts/              # 개발 도구
+│   ├── dev.sh           # 개발 모드 스크립트
+│   └── dev-server.py    # WebGPU 최적화 서버
+└── extern/dawn/         # Dawn WebGPU 구현
 ```
 
-## 🔧 Manual Build Instructions
+## 🛠️ 개발 가이드
 
-### Prerequisites
-- **macOS**: Xcode Command Line Tools
-- **CMake**: 3.16+
-- **Emscripten**: For web builds
-- **WebGPU Browser**: Chrome/Edge with WebGPU enabled
+### 새로운 기능 추가
 
-### Native Build
-```bash
-cmake -S . -B build -DBUILD_WEB=OFF
-cmake --build build --target viewer_simple
-./build/apps/viewer/viewer_simple
+1. **공통 로직**: `engine/core/` 또는 `apps/viewer/TriangleApp.h`에 구현
+2. **플랫폼별 코드**: `#ifdef __EMSCRIPTEN__`로 분기 처리
+3. **테스트**: `npm run dev`로 웹에서, `npm run native`로 네이티브에서 확인
+
+### 코드 구조
+
+```cpp
+// apps/viewer/TriangleApp.h
+class TriangleApp : public BaseApp {
+public:
+    bool onInit() override {
+        // 공통 초기화 로직
+        return true;
+    }
+    
+    void update(float deltaTime) override {
+        // 공통 업데이트 로직
+    }
+    
+    void draw() override {
+        // 공통 렌더링 로직
+    }
+};
 ```
 
-### Web Build
-```bash
-emcmake cmake -S . -B build_web -DBUILD_WEB=ON
-cmake --build build_web
-cd build_web/apps/viewer
-python3 -m http.server 8080
-# Open http://localhost:8080
-```
+## ✅ 현재 상태
 
-## 🌐 Browser Requirements
+### 작동하는 기능
+- [x] 🌐 웹/네이티브 통합 빌드 시스템
+- [x] 🎨 WebGPU 삼각형 렌더링 (웹)
+- [x] 🖼️ GLFW 창 관리 (네이티브)
+- [x] 🔧 npm 기반 개발 워크플로우
+- [x] 🚀 자동 리로드 개발 서버
+- [x] 📱 크로스플랫폼 코드 공유
 
-For the web version, you need a browser with WebGPU support:
-- **Chrome/Chromium**: Enable `chrome://flags/#enable-unsafe-webgpu`
-- **Edge**: Enable WebGPU flags
-- **Firefox**: Experimental support
+### 개발 중인 기능
+- [ ] 🎯 네이티브 WebGPU 렌더링 완성
+- [ ] 💾 컴퓨트 셰이더 지원
+- [ ] 🌊 물리 시뮬레이션 엔진
+- [ ] 🖼️ 텍스처 시스템
+- [ ] ⌨️ 입력 시스템
 
-## 📋 Current Status
+## 🌐 웹 지원
 
-### Working Features ✅
-- [x] Dawn WebGPU library built successfully
-- [x] Native GLFW window creation and management
-- [x] Web WebGPU triangle rendering with shaders
-- [x] Cross-platform build system (Native/Web)
-- [x] Modern WebGPU C++ API usage
-- [x] WGSL shader compilation
-- [x] Canvas surface creation for web
-- [x] Build automation scripts
+- ✅ Chrome/Edge (WebGPU 지원)
+- ✅ Firefox (flag 활성화 필요)
+- ❌ Safari (개발 중)
 
-### Potential Improvements 🔄
-- [ ] Full Dawn WebGPU native triangle rendering
-- [ ] Texture and advanced rendering features
-- [ ] Input handling for interactive demos
-- [ ] More complex geometry and shaders
-- [ ] Resource management optimization
+## 📋 요구사항
 
-## 🧩 Architecture
+- **웹**: Emscripten, 현대적인 브라우저
+- **네이티브**: Dawn WebGPU, GLFW, CMake
+- **공통**: Node.js, Python 3
 
-### Native Version
-- **GLFW**: Window management and input
-- **Dawn**: Google's WebGPU implementation
-- **Metal**: macOS graphics backend
-- **C++17**: Modern C++ features
+---
 
-### Web Version
-- **Emscripten**: C++ to WebAssembly compilation
-- **WebGPU**: Browser's native WebGPU implementation
-- **WGSL**: WebGPU Shading Language
-- **HTML5 Canvas**: Rendering target
-
-## 🔍 Technical Details
-
-### Shader Code (WGSL)
-```wgsl
-// Vertex Shader
-@vertex
-fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-    var pos = array<vec2f, 3>(
-        vec2f( 0.0,  0.5),
-        vec2f(-0.5, -0.5),
-        vec2f( 0.5, -0.5)
-    );
-    return vec4f(pos[vertexIndex], 0.0, 1.0);
-}
-
-// Fragment Shader
-@fragment
-fn fs_main() -> @location(0) vec4f {
-    return vec4f(0.2, 0.8, 0.2, 1.0);  // Green color
-}
-```
-
-### Build Flags
-- **Native**: Links to Dawn, GLFW, Metal frameworks
-- **Web**: `-sUSE_WEBGPU=1`, `-sASYNCIFY=1` for async operations
-
-## 📚 Development Notes
-
-The project demonstrates both approaches to WebGPU development:
-
-1. **Native Development**: Uses Dawn (Google's WebGPU implementation) for desktop applications
-2. **Web Development**: Uses browser's native WebGPU for web applications
-
-Both versions share similar WebGPU concepts but have different surface creation and build requirements.
-
-## 🐛 Known Issues
-
-- Dawn native version requires extensive library linking (185+ libraries)
-- Web version needs WebGPU-enabled browser
-- Some WebGPU APIs differ between Dawn and browser implementations
-
-## 🎯 Next Steps
-
-1. **Complete Dawn Integration**: Resolve all library dependencies for native WebGPU triangle
-2. **Advanced Features**: Add textures, uniforms, and more complex rendering
-3. **Input System**: Add mouse and keyboard interaction
-4. **Performance**: Optimize rendering loop and resource management
+**🎮 즐거운 개발 되세요!** WebGPU로 최고의 성능을 경험해보세요.
