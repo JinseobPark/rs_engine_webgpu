@@ -26,6 +26,7 @@ npm run preview
 
 ### 네이티브 개발
 
+#### Unix/macOS
 ```bash
 # 네이티브 빌드 & 실행
 npm run native
@@ -34,16 +35,45 @@ npm run native
 ./run_native.sh
 ```
 
+#### Windows
+```powershell
+# Dawn 라이브러리 빌드 (최초 1회)
+npm run build:dawn:windows
+
+# 애플리케이션 빌드 & 실행
+npm run native:windows
+
+# 또는 Command Prompt에서
+npm run build:dawn:win
+npm run native:win
+```
+
+> 📋 **Windows 사용자**: 자세한 설정 가이드는 [WINDOWS_SETUP.md](./WINDOWS_SETUP.md)를 참조하세요.
+
 ## 📦 사용 가능한 명령어
 
+### 공통 명령어
 | 명령어 | 설명 |
 |--------|------|
 | `npm run dev` | 🔥 개발 모드 (자동 리로드) |
 | `npm run build` | 🔨 웹 버전 빌드 |
 | `npm run preview` | 🌍 빌드된 파일 서버 실행 |
-| `npm run native` | 🖥️ 네이티브 개발 |
 | `npm run clean` | 🧹 모든 빌드 파일 정리 |
 | `npm run help` | ❓ 도움말 |
+
+### Unix/macOS 전용
+| 명령어 | 설명 |
+|--------|------|
+| `npm run native` | 🖥️ 네이티브 빌드 & 실행 |
+
+### Windows 전용
+| 명령어 | 설명 |
+|--------|------|
+| `npm run build:dawn:windows` | 🌅 Dawn 라이브러리 빌드 (PowerShell) |
+| `npm run build:dawn:win` | 🌅 Dawn 라이브러리 빌드 (Batch) |
+| `npm run native:windows` | 🖥️ 네이티브 빌드 & 실행 (PowerShell) |
+| `npm run native:win` | 🖥️ 네이티브 빌드 & 실행 (Batch) |
+| `npm run clean:windows` | 🧹 빌드 파일 정리 (Windows) |
 
 ## 🏗️ 프로젝트 구조
 
@@ -116,9 +146,23 @@ public:
 
 ## 📋 요구사항
 
+### 공통
 - **웹**: Emscripten, 현대적인 브라우저
-- **네이티브**: Dawn WebGPU, GLFW, CMake
-- **공통**: Node.js, Python 3
+- **Node.js**: npm 스크립트 실행용
+- **Python 3**: 개발 서버용
+
+### Unix/macOS 네이티브
+- **Dawn WebGPU**: Dawn 라이브러리
+- **GLFW**: 창 관리
+- **CMake**: 빌드 시스템
+
+### Windows 네이티브
+- **Visual Studio 2019+**: C++ 빌드 도구
+- **CMake 3.24+**: 빌드 시스템
+- **Git**: 서브모듈 관리
+- **Python 3.7+**: Dawn 빌드용
+
+> 📖 **Windows 사용자**: 자세한 설정 방법은 [WINDOWS_SETUP.md](./WINDOWS_SETUP.md)를 참조하세요.
 
 ---
 

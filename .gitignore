@@ -1,6 +1,8 @@
 # C++/CMake
 build/
 build_native/
+build_debug/
+build_release/
 build_web/
 CMakeFiles/
 CMakeCache.txt

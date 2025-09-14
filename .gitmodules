@@ -1,3 +1,6 @@
 [submodule "extern/dawn"]
 	path = extern/dawn
 	url = https://dawn.googlesource.com/dawn
+[submodule "extern/glfw"]
+	path = extern/glfw
+	url = https://github.com/glfw/glfw.git
