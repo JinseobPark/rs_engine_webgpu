@@ -1,6 +1,10 @@
 #include "Application.h"
 #include <cassert>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace rs_engine {
 
 bool Application::createRenderPipeline() {
@@ -138,9 +142,18 @@ void Application::render() {
 
 void Application::run() {
 #ifdef __EMSCRIPTEN__
-    // 웹에서는 emscripten_set_main_loop에서 처리
-    // 여기서는 초기화만 완료
+    // 웹에서는 emscripten_set_main_loop로 루프 시작
     isInitialized = true;
+    // WebApplication 전용 renderLoop 함수를 여기서 호출하도록 변경 필요
+    // 이 부분은 WebApplication에서 오버라이드하거나 가상 함수로 처리
+    emscripten_set_main_loop_arg([](void* userData) {
+        Application* app = static_cast<Application*>(userData);
+        if (app->isInitialized && !app->shouldClose) {
+            app->handleEvents();
+            app->update(0.016f); // 60fps
+            app->draw();
+        }
+    }, this, 60, 1);
 #else
     // 네이티브에서는 직접 루프 실행
     while (!shouldClose) {

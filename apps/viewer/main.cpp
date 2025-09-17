@@ -1,39 +1,27 @@
 #ifdef __EMSCRIPTEN__
-    #include "TriangleApp.h"
+    #include "SeobJJangApp.h"
 #else
-    #include "TriangleApp.h"
+    #include "SeobJJangApp.h"
 #endif
 
 int main() {
-#ifdef __EMSCRIPTEN__
-    // 웹 버전: 비동기 실행으로 cleanup은 자동 처리
-    TriangleApp app;
-    
+    // Unified initialization flow for both platforms
+    SeobJJangApp app;
+
     if (!app.init()) {
         std::cerr << "❌ Failed to initialize application" << std::endl;
         app.cleanup();
         return -1;
     }
-    
+
     app.run();
-    // 웹에서는 cleanup이 emscripten 콜백에서 자동으로 처리됨
-    
+
+#ifndef __EMSCRIPTEN__
+    // Only call cleanup explicitly on native platforms
+    // Web platforms handle cleanup through emscripten callbacks
+    app.cleanup();
+#endif
+
     std::cout << "✅ Application started successfully." << std::endl;
     return 0;
-#else
-    // 네이티브 버전: 동기 실행으로 명시적 cleanup 필요
-    TriangleApp app;
-    
-    if (!app.init()) {
-        std::cerr << "❌ Failed to initialize application" << std::endl;
-        app.cleanup();
-        return -1;
-    }
-    
-    app.run();
-    app.cleanup();
-    
-    std::cout << "✅ Application terminated successfully." << std::endl;
-    return 0;
-#endif
 }

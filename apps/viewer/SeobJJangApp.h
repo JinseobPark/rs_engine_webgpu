@@ -8,10 +8,10 @@
     using BaseApp = rs_engine::NativeApplication;
 #endif
 
-class TriangleApp : public BaseApp {
+class SeobJJangApp : public BaseApp {
 public:
     bool onInit() override {
-        std::cout << "🎯 Triangle App initialized successfully!" << std::endl;
+        std::cout << "🎯 SeobJJang App initialized successfully!" << std::endl;
         std::cout << "🎮 Controls:" << std::endl;
         std::cout << "   - Press ESC to close" << std::endl;
         return true;

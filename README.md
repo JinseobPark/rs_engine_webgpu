@@ -1,6 +1,6 @@
 # 🎮 RS Engine WebGPU
 
-크로스플랫폼 WebGPU 엔진 - 웹과 네이티브에서 동일한 코드로 실행되는 고성능 그래픽 애플리케이션
+RealTime Simulation Application - 웹과 네이티브에서 동일한 코드로 실행되는 고성능 실시간 시뮬레이션 엔진
 
 ## ✨ 특징
 
@@ -84,7 +84,7 @@ rs_engine_webgpu/
 │   └── platform/          # 플랫폼별 구현
 ├── apps/viewer/           # 샘플 애플리케이션
 │   ├── main.cpp          # 통합 메인 파일
-│   ├── TriangleApp.h     # 앱 로직
+│   ├── SeobJJangApp.h   # 앱 로직
 │   └── index.html        # 웹용 HTML
 ├── scripts/              # 개발 도구
 │   ├── dev.sh           # 개발 모드 스크립트
@@ -96,15 +96,15 @@ rs_engine_webgpu/
 
 ### 새로운 기능 추가
 
-1. **공통 로직**: `engine/core/` 또는 `apps/viewer/TriangleApp.h`에 구현
+1. **공통 로직**: `engine/core/` 또는 `apps/viewer/SeobJJangApp.h`에 구현
 2. **플랫폼별 코드**: `#ifdef __EMSCRIPTEN__`로 분기 처리
 3. **테스트**: `npm run dev`로 웹에서, `npm run native`로 네이티브에서 확인
 
 ### 코드 구조
 
 ```cpp
-// apps/viewer/TriangleApp.h
-class TriangleApp : public BaseApp {
+// apps/viewer/SeobJJangApp.h
+class SeobJJangApp : public BaseApp {
 public:
     bool onInit() override {
         // 공통 초기화 로직

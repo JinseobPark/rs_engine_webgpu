@@ -66,37 +66,111 @@
     <script>
         // Add status logging
         const statusDiv = document.getElementById('status');
-        
+
         function updateStatus(message, isError = false) {
             statusDiv.textContent = message;
             statusDiv.className = 'status ' + (isError ? 'error' : 'success');
         }
-        
-        // Check WebGPU support
-        if (!navigator.gpu) {
-            updateStatus('WebGPU is not supported in this browser', true);
-            console.log('WebGPU is not supported in this browser');
-        } else {
-            updateStatus('WebGPU supported! Loading application...');
-            console.log('WebGPU is supported in this browser');
+
+        // Enhanced WebGPU diagnostics
+        async function checkWebGPUSupport() {
+            console.log('🔍 Running WebGPU diagnostics...');
+
+            if (!navigator.gpu) {
+                updateStatus('WebGPU is not supported in this browser', true);
+                console.error('❌ navigator.gpu is not available');
+                return false;
+            }
+
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    updateStatus('WebGPU adapter request failed', true);
+                    console.error('❌ Failed to get WebGPU adapter');
+                    return false;
+                }
+
+                console.log('✅ WebGPU adapter obtained:', adapter);
+
+                const device = await adapter.requestDevice();
+                if (!device) {
+                    updateStatus('WebGPU device request failed', true);
+                    console.error('❌ Failed to get WebGPU device');
+                    return false;
+                }
+
+                console.log('✅ WebGPU device obtained:', device);
+                updateStatus('WebGPU fully supported! Loading application...');
+                return true;
+
+            } catch (error) {
+                updateStatus('WebGPU error: ' + error.message, true);
+                console.error('❌ WebGPU error:', error);
+                return false;
+            }
         }
-        
+
+        // Run diagnostics on page load
+        checkWebGPUSupport();
+
         // Override console methods to show status
         const originalError = console.error;
         const originalLog = console.log;
-        
+
         console.error = function(...args) {
-            updateStatus('Error: ' + args.join(' '), true);
+            const message = args.join(' ');
+            updateStatus('Error: ' + message, true);
             originalError.apply(console, args);
         };
-        
+
         console.log = function(...args) {
             const message = args.join(' ');
             if (message.includes('initialized successfully')) {
                 updateStatus('WebGPU Triangle App running successfully!');
+            } else if (message.includes('🎯 Triangle App')) {
+                updateStatus('Triangle App initialized!');
             }
             originalLog.apply(console, args);
         };
+
+        // Catch unhandled errors
+        window.addEventListener('error', (event) => {
+            const errorMsg = event.error ? event.error.message : event.message;
+            updateStatus('Runtime Error: ' + errorMsg, true);
+            console.error('Unhandled error:', event.error || event);
+
+            // Log stack trace if available
+            if (event.error && event.error.stack) {
+                console.error('Stack trace:', event.error.stack);
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            let errorMsg = 'Unknown promise rejection';
+
+            if (typeof event.reason === 'string') {
+                errorMsg = event.reason;
+            } else if (event.reason instanceof Error) {
+                errorMsg = event.reason.message;
+            } else if (event.reason && event.reason.toString) {
+                errorMsg = event.reason.toString();
+            }
+
+            // Check for specific Emscripten abort messages
+            if (errorMsg.includes('Aborted(Assertion failed)')) {
+                updateStatus('💥 Assertion Failed - Check browser console for details', true);
+                console.error('🚨 Emscripten Assertion Failed:');
+                console.error('This usually indicates:');
+                console.error('1. Memory access violation');
+                console.error('2. Stack overflow');
+                console.error('3. WebGPU initialization failure');
+                console.error('4. Async timing issue');
+            } else {
+                updateStatus('Promise Error: ' + errorMsg, true);
+            }
+
+            console.error('Unhandled promise rejection:', event.reason);
+        });
     </script>
 
     <script async type="text/javascript" src="viewer.js"></script>
