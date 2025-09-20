@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../core/math/Mat4.h"
+#include "../../core/math/Vec3.h"
 #include "Camera.h"
 #include "../ShaderManager.h"
 #include <memory>

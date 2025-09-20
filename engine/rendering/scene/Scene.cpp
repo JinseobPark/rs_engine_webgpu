@@ -4,32 +4,17 @@
 
 namespace rs_engine {
 
-// Helper function for Y rotation matrix
-static Mat4 rotationY(float angle) {
-    Mat4 result = Mat4(); // Initialize to zero
-    float c = cos(angle);
-    float s = sin(angle);
-
-    // Set identity matrix first
-    result.data[0] = 1; result.data[5] = 1; result.data[10] = 1; result.data[15] = 1;
-    
-    // Apply Y rotation
-    result.data[0] = c;   result.data[2] = s;
-    result.data[8] = -s;  result.data[10] = c;
-
-    return result;
-}
 
 namespace rendering {
 
 Mat4 CubeObject::getModelMatrix() const {
-    // For now, just return a rotation matrix based on animation time
-    // You can extend this to include position, rotation, and scale
-    Mat4 translation = Mat4(); // Identity
-    translation.data[12] = position.x;
-    translation.data[13] = position.y;
-    translation.data[14] = position.z;
-    return Mat4::multiply(rotationY(animationTime), translation);
+    // Create transformation matrices using the new Mat4 library
+    Mat4 translationMat = Mat4::translation(position);
+    Mat4 rotationMat = Mat4::rotationY(animationTime);
+    Mat4 scaleMat = Mat4::scale(scale);
+
+    // Combine transformations: translation * rotation * scale
+    return translationMat * rotationMat * scaleMat;
 }
 
 Scene::Scene(wgpu::Device* dev) : device(dev) {

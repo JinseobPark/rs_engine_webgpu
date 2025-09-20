@@ -4,25 +4,6 @@
 
 namespace rs_engine {
 
-// Mat4 implementation moved to Camera.cpp to avoid duplication
-
-Mat4 Mat4::rotationY(float angle) {
-    Mat4 result = Mat4(); // Initialize to zero
-    float c = cos(angle);
-    float s = sin(angle);
-
-    // Set identity matrix first
-    result.data[0] = 1; result.data[5] = 1; result.data[10] = 1; result.data[15] = 1;
-    
-    // Apply Y rotation
-    result.data[0] = c;   result.data[2] = s;
-    result.data[8] = -s;  result.data[10] = c;
-
-    return result;
-}
-
-// Mat4::multiply moved to Camera.cpp to avoid duplication
-
 // CubeRenderer implementation
 CubeRenderer::CubeRenderer(wgpu::Device* dev) : device(dev) {
     shaderManager = std::make_unique<ShaderManager>(device, "shaders/");
@@ -240,8 +221,8 @@ bool CubeRenderer::initialize() {
     // Move camera further back to ensure cube is visible
     // Camera at (0, 0, 5) looking at origin
     Mat4 projection = Mat4::perspective(45.0f * M_PI / 180.0f, 800.0f / 600.0f, 0.1f, 100.0f);
-    Mat4 view = Mat4::lookAt({0, 0, 5}, {0, 0, 0}, {0, 1, 0});
-    uniforms.viewProj = Mat4::multiply(projection, view);
+    Mat4 view = Mat4::lookAt(Vec3(0, 0, 5), Vec3(0, 0, 0), Vec3(0, 1, 0));
+    uniforms.viewProj = projection * view;
 
     std::cout << "✅ CubeRenderer::initialize() completed successfully!" << std::endl;
     return true;
@@ -254,8 +235,8 @@ void CubeRenderer::updateUniforms() {
     // Debug: Print matrix values occasionally
     static int debugCounter = 0;
     if (debugCounter % 120 == 0) { // Every 2 seconds at 60fps
-        std::cout << "🔍 Model matrix[0]: " << uniforms.model.data[0] << ", [5]: " << uniforms.model.data[5] << std::endl;
-        std::cout << "🔍 ViewProj matrix[0]: " << uniforms.viewProj.data[0] << ", [15]: " << uniforms.viewProj.data[15] << std::endl;
+        std::cout << "🔍 Model matrix[0]: " << uniforms.model.m[0] << ", [5]: " << uniforms.model.m[5] << std::endl;
+        std::cout << "🔍 ViewProj matrix[0]: " << uniforms.viewProj.m[0] << ", [15]: " << uniforms.viewProj.m[15] << std::endl;
         std::cout << "🔍 Time: " << uniforms.time << std::endl;
     }
     debugCounter++;

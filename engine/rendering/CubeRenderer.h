@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/math/Mat4.h"
+#include "../core/math/Vec3.h"
 #include "ShaderManager.h"
 #include <array>
 #include <cmath>
@@ -12,21 +14,6 @@
 #endif
 
 namespace rs_engine {
-
-struct Mat4 {
-    float data[16];
-
-    Mat4() {
-        // Identity matrix
-        for (int i = 0; i < 16; i++) data[i] = 0.0f;
-        data[0] = data[5] = data[10] = data[15] = 1.0f;
-    }
-
-    static Mat4 perspective(float fov, float aspect, float near, float far);
-    static Mat4 lookAt(const std::array<float, 3>& eye, const std::array<float, 3>& center, const std::array<float, 3>& up);
-    static Mat4 rotationY(float angle);
-    static Mat4 multiply(const Mat4& a, const Mat4& b);
-};
 
 struct CubeUniforms {
     Mat4 viewProj;

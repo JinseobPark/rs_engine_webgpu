@@ -1,27 +1,11 @@
 #pragma once
 
 #include "../../core/math/Vec3.h"
+#include "../../core/math/Mat4.h"
 #include <array>
 #include <cmath>
 
 namespace rs_engine {
-
-// Forward declare Mat4 to avoid circular dependency
-struct Mat4 {
-    float data[16];
-
-    Mat4() {
-        // Identity matrix
-        for (int i = 0; i < 16; i++) data[i] = 0.0f;
-        data[0] = data[5] = data[10] = data[15] = 1.0f;
-    }
-
-    static Mat4 perspective(float fov, float aspect, float near, float far);
-    static Mat4 lookAt(const Vec3& eye, const Vec3& center, const Vec3& up);
-    static Mat4 multiply(const Mat4& a, const Mat4& b);
-    Mat4 transpose() const;
-};
-
 namespace rendering {
 
 class Camera {
