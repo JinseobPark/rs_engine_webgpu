@@ -31,7 +31,7 @@ if(EMSCRIPTEN)
         -sASYNCIFY=1
         -sALLOW_MEMORY_GROWTH=1
         --bind
-        -sTOTAL_MEMORY=64MB
+        -sTOTAL_MEMORY=256MB
         -sEXPORTED_RUNTIME_METHODS=["ccall","cwrap"]
         -lhtml5
     )
@@ -39,13 +39,20 @@ else()
     # Native version setup using Dawn WebGPU
     set(DAWN_ROOT "${CMAKE_SOURCE_DIR}/extern/dawn")
     set(DAWN_BUILD "${DAWN_ROOT}/build")
+    set(GLFW_ROOT "${CMAKE_SOURCE_DIR}/extern/glfw")
     
-    # Include Dawn headers
+    # Add GLFW subdirectory and configure it
+    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    add_subdirectory(${GLFW_ROOT} glfw EXCLUDE_FROM_ALL)
+    
+    # Include Dawn headers and GLFW
     target_include_directories(rs_engine_webgpu PUBLIC
         ${DAWN_ROOT}/include
         ${DAWN_ROOT}/src
         ${DAWN_BUILD}/gen/include
-        ${DAWN_ROOT}/third_party/glfw/include
+        ${GLFW_ROOT}/include
     )
     
     # Find and link all required Dawn and dependency libraries
@@ -56,7 +63,6 @@ else()
         "${DAWN_BUILD}/src/dawn/platform/libdawn_platform.a"
         "${DAWN_BUILD}/src/dawn/wire/libdawn_wire.a"
         "${DAWN_BUILD}/src/dawn/glfw/libdawn_glfw.a"
-        "${DAWN_BUILD}/third_party/glfw/src/libglfw3.a"
     )
 
     file(GLOB ABSEIL_LIBS "${DAWN_BUILD}/third_party/abseil/absl/*/libabsl_*.a")
@@ -66,6 +72,7 @@ else()
         ${DAWN_LIBS}
         ${ABSEIL_LIBS}
         ${TINT_LIBS}
+        glfw  # Use our submodule GLFW instead of Dawn's
     )
     
     # Add macOS frameworks

@@ -10,6 +10,7 @@
     #include <webgpu/webgpu_cpp.h>
     #include <emscripten/html5_webgpu.h>
 #else
+    #define GLFW_NO_API
     #include <GLFW/glfw3.h>
     #include <dawn/dawn_proc.h>
     #include <dawn/native/DawnNative.h>
