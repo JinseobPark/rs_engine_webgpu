@@ -77,9 +77,9 @@ void WebApplication::onDeviceReceived() {
     std::cout << "WebGPU initialization completed" << std::endl;
 
     // Initialize renderer after device is ready
-    std::cout << "🎯 Initializing renderer after WebGPU device ready..." << std::endl;
-    if (!initializeRenderer()) {
-        std::cerr << "❌ Failed to initialize renderer" << std::endl;
+    std::cout << "🎯 Initializing scene after WebGPU device ready..." << std::endl;
+    if (!initializeScene()) {
+        std::cerr << "❌ Failed to initialize scene" << std::endl;
         initializationFailed = true;
         return;
     }
@@ -159,8 +159,8 @@ void WebApplication::cleanup() {
     emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, nullptr);
 
     // WebGPU 리소스 해제 (순서 중요)
-    if (cubeRenderer) {
-        cubeRenderer.reset();
+    if (scene) {
+        scene.reset();
     }
 
     if (surface) {

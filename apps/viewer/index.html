@@ -773,13 +773,22 @@
             }
         }
 
+        // Initialize Emscripten Module BEFORE viewer.js loads
+        window.Module = {
+            canvas: document.getElementById('canvas'),
+            onRuntimeInitialized: function() {
+                console.log('🎯 Emscripten runtime initialized');
+                updateStatus('WebGPU Engine started!', 'success');
+            }
+        };
+
         // Initialize all functionality
         document.addEventListener('DOMContentLoaded', () => {
             initializePanelToggles();
             initializeTreeSelection();
             initializeToolbar();
             initializeResizing();
-            
+
             // Run WebGPU diagnostics
             checkWebGPUSupport();
         });
@@ -801,6 +810,12 @@
                 updateStatusBar('Running', '60 FPS');
             } else if (message.includes('🎯 Triangle App')) {
                 updateStatus('Triangle App initialized!', 'success');
+            } else if (message.includes('Scene::initialize()')) {
+                updateStatus('Initializing Scene...', 'info');
+            } else if (message.includes('createCube')) {
+                updateStatus('Creating cube resources...', 'info');
+            } else if (message.includes('Added cube to scene')) {
+                updateStatus('Cubes added to scene: ' + message.split('Total cubes: ')[1], 'success');
             }
             originalLog.apply(console, args);
         };

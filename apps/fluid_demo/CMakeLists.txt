@@ -28,11 +28,17 @@ if(EMSCRIPTEN)
         -sASYNCIFY
         -sALLOW_MEMORY_GROWTH=1
         # 디버깅 옵션들
-        -g                              # 디버깅 정보 생성
+        -g4                             # 최대 디버깅 정보 생성
         -gsource-map                    # 소스 맵 생성
         --emit-symbol-map               # 심볼 맵 생성
         -O0                             # 최적화 레벨 0 (디버깅용)
-        --source-map-base=http://localhost:3377/
+        --source-map-base=http://localhost:3378/
+        -sASSERTIONS=2                  # 상세한 assertion 활성화
+        -sSAFE_HEAP=1                   # 메모리 안전성 체크
+        -sDISABLE_EXCEPTION_CATCHING=0  # 예외 처리 활성화
+        -sSTACK_OVERFLOW_CHECK=2        # 스택 오버플로우 체크
+        -sABORTING_MALLOC=0             # malloc 실패 시 abort하지 않음
+        --emit-symbol-map               # 심볼 맵 생성 (중복이지만 확실히)
     )
     
     # Copy HTML file to build directory (always copy, even if newer)

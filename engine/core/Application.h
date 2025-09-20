@@ -3,7 +3,7 @@
 #include <memory>
 #include <iostream>
 #include "Config.h"
-#include "../rendering/CubeRenderer.h"
+#include "../rendering/scene/Scene.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -32,7 +32,7 @@ protected:
     wgpu::Surface surface = nullptr;
 
     // 렌더러
-    std::unique_ptr<CubeRenderer> cubeRenderer;
+    std::unique_ptr<rs_engine::rendering::Scene> scene;
 
     // 공통 상태
     uint32_t windowWidth = 800;
@@ -56,6 +56,7 @@ public:
 
     // 공통 구현
     bool initializeRenderer();
+    bool initializeScene();
     void configureSurface();
     void render();
 
@@ -66,7 +67,7 @@ public:
         return initPlatform() && initWebGPU() && onInit();
 #else
         // Native version: synchronous initialization
-        return initPlatform() && initWebGPU() && initializeRenderer() && onInit();
+        return initPlatform() && initWebGPU() && initializeScene() && onInit();
 #endif
     }
     virtual bool onInit() { return true; }

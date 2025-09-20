@@ -26,6 +26,8 @@ if(EMSCRIPTEN)
         platform/WebApplication.cpp
         rendering/ShaderManager.cpp
         rendering/CubeRenderer.cpp
+        rendering/scene/Camera.cpp
+        rendering/scene/Scene.cpp
     )
 
     # Make sure embedded shaders are generated before building
@@ -39,6 +41,8 @@ else()
         platform/NativeApplication.cpp
         rendering/ShaderManager.cpp
         rendering/CubeRenderer.cpp
+        rendering/scene/Camera.cpp
+        rendering/scene/Scene.cpp
     )
 endif()
 
@@ -63,6 +67,14 @@ if(EMSCRIPTEN)
         -sTOTAL_MEMORY=256MB
         -sEXPORTED_RUNTIME_METHODS=["ccall","cwrap"]
         -lhtml5
+        # 디버깅 옵션들
+        -g                              # 디버깅 정보 생성
+        -gsource-map                    # 소스 맵 생성
+        --emit-symbol-map               # 심볼 맵 생성
+        -O0                             # 최적화 레벨 0 (디버깅용)
+        -sASSERTIONS=1                  # assertion 활성화
+        -sSAFE_HEAP=1                   # 메모리 안전성 체크
+        -sDISABLE_EXCEPTION_CATCHING=0  # 예외 처리 활성화
     )
 else()
     # Native version setup using Dawn WebGPU

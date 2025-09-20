@@ -32,6 +32,9 @@ if(EMSCRIPTEN)
         --emit-symbol-map               # 심볼 맵 생성
         -O0                             # 최적화 레벨 0 (디버깅용)
         --source-map-base=http://localhost:3377/
+        -sASSERTIONS=1                  # assertion 활성화
+        -sSAFE_HEAP=1                   # 메모리 안전성 체크
+        -sDISABLE_EXCEPTION_CATCHING=0  # 예외 처리 활성화
     )
     
     # Copy original HTML file to build directory and keep it updated

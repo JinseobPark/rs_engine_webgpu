@@ -8,16 +8,26 @@
 namespace rs_engine {
 
 bool Application::initializeRenderer() {
-    std::cout << "🎯 Initializing CubeRenderer..." << std::endl;
+    // Kept for backward compatibility, now just calls initializeScene
+    return initializeScene();
+}
 
-    cubeRenderer = std::make_unique<CubeRenderer>(&device);
+bool Application::initializeScene() {
+    std::cout << "🎯 Initializing Scene..." << std::endl;
 
-    if (!cubeRenderer->initialize()) {
-        std::cerr << "❌ Failed to initialize cube renderer" << std::endl;
+    scene = std::make_unique<rs_engine::rendering::Scene>(&device);
+
+    if (!scene->initialize()) {
+        std::cerr << "❌ Failed to initialize scene" << std::endl;
         return false;
     }
 
-    std::cout << "✅ CubeRenderer initialized successfully!" << std::endl;
+    // Add a default cube to the scene
+    scene->addCube(Vec3(2, 0, 0));
+    scene->addCube(Vec3(0, 3, 0));
+    scene->addCube(Vec3(-2, 0, 0));
+
+    std::cout << "✅ Scene initialized successfully!" << std::endl;
     return true;
 }
 
@@ -66,8 +76,8 @@ void Application::render() {
 
     wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
 
-    if (cubeRenderer) {
-        cubeRenderer->render(renderPass);
+    if (scene) {
+        scene->render(renderPass);
     }
 
     renderPass.End();
@@ -93,8 +103,8 @@ void Application::run() {
             app->handleEvents();
             float deltaTime = 0.016f; // 60fps
             app->update(deltaTime);
-            if (app->cubeRenderer) {
-                app->cubeRenderer->update(deltaTime);
+            if (app->scene) {
+                app->scene->update(deltaTime);
             }
             app->draw();
         }
@@ -105,8 +115,8 @@ void Application::run() {
         handleEvents();
         float deltaTime = 0.016f; // 60fps 가정
         update(deltaTime);
-        if (cubeRenderer) {
-            cubeRenderer->update(deltaTime);
+        if (scene) {
+            scene->update(deltaTime);
         }
         draw();
     }

@@ -4,77 +4,24 @@
 
 namespace rs_engine {
 
-// Mat4 implementation
-Mat4 Mat4::perspective(float fov, float aspect, float near, float far) {
-    Mat4 result;
-    float tanHalfFov = tan(fov / 2.0f);
-
-    result.data[0] = 1.0f / (aspect * tanHalfFov);
-    result.data[5] = 1.0f / tanHalfFov;
-    result.data[10] = -(far + near) / (far - near);
-    result.data[11] = -1.0f;
-    result.data[14] = -(2.0f * far * near) / (far - near);
-    result.data[15] = 0.0f;
-
-    return result;
-}
-
-Mat4 Mat4::lookAt(const std::array<float, 3>& eye, const std::array<float, 3>& center, const std::array<float, 3>& up) {
-    Mat4 result;
-
-    // Calculate forward vector
-    float fx = center[0] - eye[0];
-    float fy = center[1] - eye[1];
-    float fz = center[2] - eye[2];
-    float flen = sqrt(fx*fx + fy*fy + fz*fz);
-    fx /= flen; fy /= flen; fz /= flen;
-
-    // Calculate right vector
-    float rx = fy * up[2] - fz * up[1];
-    float ry = fz * up[0] - fx * up[2];
-    float rz = fx * up[1] - fy * up[0];
-    float rlen = sqrt(rx*rx + ry*ry + rz*rz);
-    rx /= rlen; ry /= rlen; rz /= rlen;
-
-    // Calculate up vector
-    float ux = ry * fz - rz * fy;
-    float uy = rz * fx - rx * fz;
-    float uz = rx * fy - ry * fx;
-
-    result.data[0] = rx; result.data[1] = ux; result.data[2] = -fx; result.data[3] = 0;
-    result.data[4] = ry; result.data[5] = uy; result.data[6] = -fy; result.data[7] = 0;
-    result.data[8] = rz; result.data[9] = uz; result.data[10] = -fz; result.data[11] = 0;
-    result.data[12] = -(rx * eye[0] + ry * eye[1] + rz * eye[2]);
-    result.data[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]);
-    result.data[14] = -(-fx * eye[0] + -fy * eye[1] + -fz * eye[2]);
-    result.data[15] = 1;
-
-    return result;
-}
+// Mat4 implementation moved to Camera.cpp to avoid duplication
 
 Mat4 Mat4::rotationY(float angle) {
-    Mat4 result;
+    Mat4 result = Mat4(); // Initialize to zero
     float c = cos(angle);
     float s = sin(angle);
 
+    // Set identity matrix first
+    result.data[0] = 1; result.data[5] = 1; result.data[10] = 1; result.data[15] = 1;
+    
+    // Apply Y rotation
     result.data[0] = c;   result.data[2] = s;
     result.data[8] = -s;  result.data[10] = c;
 
     return result;
 }
 
-Mat4 Mat4::multiply(const Mat4& a, const Mat4& b) {
-    Mat4 result;
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            result.data[i * 4 + j] = 0;
-            for (int k = 0; k < 4; k++) {
-                result.data[i * 4 + j] += a.data[i * 4 + k] * b.data[k * 4 + j];
-            }
-        }
-    }
-    return result;
-}
+// Mat4::multiply moved to Camera.cpp to avoid duplication
 
 // CubeRenderer implementation
 CubeRenderer::CubeRenderer(wgpu::Device* dev) : device(dev) {
@@ -82,34 +29,36 @@ CubeRenderer::CubeRenderer(wgpu::Device* dev) : device(dev) {
 }
 
 std::array<float, CubeRenderer::VERTEX_COUNT * 3> CubeRenderer::getCubeVertices() {
+    // Make cube larger for better visibility
+    float size = 1.0f;
     return {{
         // Front face
-        -0.5f, -0.5f,  0.5f,
-         0.5f, -0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
+        -size, -size,  size,
+         size, -size,  size,
+         size,  size,  size,
+        -size,  size,  size,
         // Back face
-        -0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-        -0.5f,  0.5f, -0.5f,
+        -size, -size, -size,
+         size, -size, -size,
+         size,  size, -size,
+        -size,  size, -size,
     }};
 }
 
 std::array<uint32_t, CubeRenderer::INDEX_COUNT> CubeRenderer::getCubeIndices() {
     return {{
-        // Front face
+        // Front face (counter-clockwise from outside)
         0, 1, 2,  2, 3, 0,
-        // Back face
-        4, 6, 5,  6, 4, 7,
+        // Back face (counter-clockwise from outside) 
+        5, 4, 7,  7, 6, 5,
         // Left face
         4, 0, 3,  3, 7, 4,
-        // Right face
+        // Right face  
         1, 5, 6,  6, 2, 1,
         // Top face
         3, 2, 6,  6, 7, 3,
         // Bottom face
-        4, 5, 1,  1, 0, 4,
+        0, 4, 5,  5, 1, 0,
     }};
 }
 
@@ -288,10 +237,11 @@ bool CubeRenderer::initialize() {
     std::cout << "✅ CubeRenderer: createPipeline() succeeded" << std::endl;
 
     // Initialize projection matrix
-    uniforms.viewProj = Mat4::multiply(
-        Mat4::perspective(45.0f * M_PI / 180.0f, 800.0f / 600.0f, 0.1f, 100.0f),
-        Mat4::lookAt({0, 0, 3}, {0, 0, 0}, {0, 1, 0})
-    );
+    // Move camera further back to ensure cube is visible
+    // Camera at (0, 0, 5) looking at origin
+    Mat4 projection = Mat4::perspective(45.0f * M_PI / 180.0f, 800.0f / 600.0f, 0.1f, 100.0f);
+    Mat4 view = Mat4::lookAt({0, 0, 5}, {0, 0, 0}, {0, 1, 0});
+    uniforms.viewProj = Mat4::multiply(projection, view);
 
     std::cout << "✅ CubeRenderer::initialize() completed successfully!" << std::endl;
     return true;
@@ -300,6 +250,15 @@ bool CubeRenderer::initialize() {
 void CubeRenderer::updateUniforms() {
     uniforms.model = Mat4::rotationY(currentTime);
     uniforms.time = currentTime;
+
+    // Debug: Print matrix values occasionally
+    static int debugCounter = 0;
+    if (debugCounter % 120 == 0) { // Every 2 seconds at 60fps
+        std::cout << "🔍 Model matrix[0]: " << uniforms.model.data[0] << ", [5]: " << uniforms.model.data[5] << std::endl;
+        std::cout << "🔍 ViewProj matrix[0]: " << uniforms.viewProj.data[0] << ", [15]: " << uniforms.viewProj.data[15] << std::endl;
+        std::cout << "🔍 Time: " << uniforms.time << std::endl;
+    }
+    debugCounter++;
 
     device->GetQueue().WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(CubeUniforms));
 }

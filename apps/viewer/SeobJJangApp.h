@@ -14,8 +14,8 @@ public:
     ~SeobJJangApp();
 
     bool onInit() override;
-    
+
     void update(float deltaTime) override;
-    
+
     void draw() override;
 };

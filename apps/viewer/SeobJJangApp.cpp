@@ -15,12 +15,10 @@ bool SeobJJangApp::onInit()
 
 void SeobJJangApp::update(const float deltaTime)
 {
-    // 여기에 공통 업데이트 로직 추가
     BaseApp::update(deltaTime);
 }
 
 void SeobJJangApp::draw()
 {
-    // 여기에 공통 렌더링 로직 추가
     BaseApp::draw();
 }

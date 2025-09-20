@@ -33,7 +33,7 @@
     "preview:all": "npm run preview & npm run preview:fluid",
     "start": "npm run preview",
     "serve": "npm run preview",
-    "clean": "rm -rf build build_web",
+    "clean": "rm -rf build build_web build_native",
     "clean:web": "rm -rf build_web",
     "clean:native": "rm -rf build",
     "clean:windows": "powershell -Command \"Remove-Item -Recurse -Force build, build_web -ErrorAction SilentlyContinue\"",
