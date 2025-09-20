@@ -17,27 +17,12 @@ private:
     std::unique_ptr<rs_engine::SPHSimulation> fluidSim;
 
 public:
-    bool onInit() override {
-        std::cout << "🌊 Fluid Demo initialized!" << std::endl;
-        std::cout << "Platform limits: " << std::endl;
-        std::cout << "  Max particles: " << platformLimits.maxParticles << std::endl;
-        std::cout << "  Advanced features: " << (platformLimits.enableAdvancedFeatures ? "ON" : "OFF") << std::endl;
+    FluidDemoApp();
+    ~FluidDemoApp();
 
-        // Initialize physics world
-        physicsWorld = std::make_unique<rs_engine::PhysicsWorld>(&device);
+    bool onInit() override;
 
-        return true;
-    }
+    void update(float deltaTime) override;
 
-    void update(float deltaTime) override {
-        if (physicsWorld) {
-            physicsWorld->update(deltaTime);
-            physicsWorld->adjustQualityForPerformance(deltaTime);
-        }
-        BaseApp::update(deltaTime);
-    }
-
-    void draw() override {
-        BaseApp::draw();
-    }
+    void draw() override;
 };

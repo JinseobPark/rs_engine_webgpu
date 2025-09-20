@@ -5,7 +5,7 @@ option(BUILD_WEB "Build for web using Emscripten" OFF)
 
 if(EMSCRIPTEN)
     # Web version using our engine
-    add_executable(fluid_demo main.cpp)
+    add_executable(fluid_demo main.cpp FluidDemoApp.cpp)
     
     # Set C++17 for compatibility
     set_target_properties(fluid_demo PROPERTIES
@@ -45,7 +45,7 @@ if(EMSCRIPTEN)
     
 else()
     # Native version using our engine
-    add_executable(fluid_demo main.cpp)
+    add_executable(fluid_demo main.cpp FluidDemoApp.cpp)
 
     # Set C++17 for compatibility
     set_target_properties(fluid_demo PROPERTIES

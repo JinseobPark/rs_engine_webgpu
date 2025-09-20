@@ -10,20 +10,12 @@
 
 class SeobJJangApp : public BaseApp {
 public:
-    bool onInit() override {
-        std::cout << "🎯 SeobJJang App initialized successfully!" << std::endl;
-        std::cout << "🎮 Controls:" << std::endl;
-        std::cout << "   - Press ESC to close" << std::endl;
-        return true;
-    }
+    SeobJJangApp();
+    ~SeobJJangApp();
+
+    bool onInit() override;
     
-    void update(float deltaTime) override {
-        // 여기에 공통 업데이트 로직 추가
-        BaseApp::update(deltaTime);
-    }
+    void update(float deltaTime) override;
     
-    void draw() override {
-        // 여기에 공통 렌더링 로직 추가
-        BaseApp::draw();
-    }
+    void draw() override;
 };

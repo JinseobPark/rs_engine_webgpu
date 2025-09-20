@@ -5,7 +5,7 @@ option(BUILD_WEB "Build for web using Emscripten" OFF)
 
 if(EMSCRIPTEN)
     # Web version using our engine
-    add_executable(viewer main.cpp)
+    add_executable(viewer main.cpp SeobJJangApp.cpp)
     
     # Set C++17 for compatibility
     set_target_properties(viewer PROPERTIES
@@ -44,7 +44,7 @@ if(EMSCRIPTEN)
     
 else()
     # Native version using our engine
-    add_executable(viewer main.cpp)
+    add_executable(viewer main.cpp SeobJJangApp.cpp)
 
     # Set C++17 for compatibility
     set_target_properties(viewer PROPERTIES
