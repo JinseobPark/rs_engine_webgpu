@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RS Engine WebGPU - Fluid Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            font-size: 13px;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Title Bar */
+        .title-bar {
+            background: linear-gradient(to bottom, #3c3c3c, #2b2b2b);
+            border-bottom: 1px solid #1a1a1a;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            user-select: none;
+        }
+
+        .title-bar .engine-name {
+            color: #4CAF50;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .title-bar .project-name {
+            margin-left: 8px;
+            color: #b0b0b0;
+        }
+
+        /* Main Container */
+        .main-container {
+            flex: 1;
+            display: flex;
+            background: #1e1e1e;
+        }
+
+        /* Sidebar Panel */
+        .sidebar {
+            width: 280px;
+            background: #252525;
+            border-right: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            background: #2d2d2d;
+            padding: 8px 12px;
+            border-bottom: 1px solid #3c3c3c;
+            font-weight: 600;
+            font-size: 12px;
+            color: #4CAF50;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-content {
+            padding: 12px;
+            flex: 1;
+        }
+
+        /* Simulation Controls */
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: #9e9e9e;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .slider-container {
+            margin-bottom: 8px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 20px;
+            background: #3c3c3c;
+            border-radius: 10px;
+            outline: none;
+            appearance: none;
+            margin-bottom: 4px;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            font-size: 11px;
+            color: #e0e0e0;
+            text-align: right;
+        }
+
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: #45a049;
+        }
+
+        .button.secondary {
+            background: #666;
+        }
+
+        .button.secondary:hover {
+            background: #777;
+        }
+
+        .button.danger {
+            background: #f44336;
+        }
+
+        .button.danger:hover {
+            background: #d32f2f;
+        }
+
+        /* Statistics Panel */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            background: #2a2a2a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #9e9e9e;
+            text-transform: uppercase;
+        }
+
+        /* Canvas Area */
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #2a2a2a 0%, #1e1e1e 100%);
+            position: relative;
+            padding: 20px;
+        }
+
+        #canvas {
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+            background-color: #000;
+        }
+
+        /* Status Overlay */
+        .engine-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            border: 1px solid #4a4a4a;
+            max-width: 300px;
+        }
+
+        .engine-status.error {
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        .engine-status.success {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        .engine-status.warning {
+            border-color: #FFA726;
+            color: #FFA726;
+        }
+
+        /* Performance Overlay */
+        .perf-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            border: 1px solid #4a4a4a;
+            min-width: 120px;
+        }
+
+        .perf-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .perf-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background-color: #007ACC;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            color: white;
+            justify-content: space-between;
+        }
+
+        .status-left {
+            display: flex;
+            gap: 16px;
+        }
+
+        .status-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Tabs */
+        .tab-container {
+            border-bottom: 1px solid #3c3c3c;
+        }
+
+        .tabs {
+            display: flex;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: #2a2a2a;
+            border: none;
+            color: #9e9e9e;
+            cursor: pointer;
+            font-size: 11px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+            background: #252525;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 12px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Title Bar -->
+    <div class="title-bar">
+        <span class="engine-name">RS Engine WebGPU</span>
+        <span class="project-name">- Fluid Demo (Live Development Mode 🌊)</span>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Panel -->
+        <div class="sidebar">
+            <div class="tab-container">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab(event, 'simulation-tab')">Simulation</button>
+                    <button class="tab" onclick="switchTab(event, 'physics-tab')">Physics</button>
+                    <button class="tab" onclick="switchTab(event, 'debug-tab')">Debug</button>
+                </div>
+            </div>
+
+            <!-- Simulation Tab -->
+            <div id="simulation-tab" class="tab-content active">
+                <div class="panel-header">🌊 Fluid Simulation</div>
+                <div class="panel-content">
+                    <!-- Statistics -->
+                    <div class="control-group">
+                        <div class="control-label">Performance</div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="fps-counter">60</div>
+                                <div class="stat-label">FPS</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="particle-count">0</div>
+                                <div class="stat-label">Particles</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="sim-time">0.0</div>
+                                <div class="stat-label">Sim Time</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="frame-time">16.7</div>
+                                <div class="stat-label">Frame (ms)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulation Controls -->
+                    <div class="control-group">
+                        <div class="control-label">Controls</div>
+                        <button class="button" id="play-pause-btn" onclick="toggleSimulation()">▶ Play</button>
+                        <button class="button secondary" onclick="resetSimulation()">🔄 Reset</button>
+                        <button class="button secondary" onclick="stepFrame()">⏭ Step</button>
+                    </div>
+
+                    <!-- Particle Settings -->
+                    <div class="control-group">
+                        <div class="control-label">Particle Count</div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="particle-slider" min="100" max="5000" value="1000"
+                                   oninput="updateParticleCount(this.value)">
+                            <div class="slider-value" id="particle-slider-value">1000</div>
+                        </div>
+                    </div>
+
+                    <!-- Time Scale -->
+                    <div class="control-group">
+                        <div class="control-label">Time Scale</div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="timescale-slider" min="0.1" max="2.0" step="0.1" value="1.0"
+                                   oninput="updateTimeScale(this.value)">
+                            <div class="slider-value" id="timescale-slider-value">1.0x</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physics Tab -->
+            <div id="physics-tab" class="tab-content">
+                <div class="panel-header">⚛️ Physics Settings</div>
+                <div class="panel-content">
+                    <!-- SPH Parameters -->
+                    <div class="control-group">
+                        <div class="control-label">Smoothing Radius</div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="smoothing-slider" min="0.1" max="2.0" step="0.1" value="0.5"
+                                   oninput="updateSmoothingRadius(this.value)">
+                            <div class="slider-value" id="smoothing-slider-value">0.5</div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Pressure Multiplier</div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="pressure-slider" min="0.1" max="5.0" step="0.1" value="1.0"
+                                   oninput="updatePressure(this.value)">
+                            <div class="slider-value" id="pressure-slider-value">1.0</div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Viscosity</div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="viscosity-slider" min="0.0" max="2.0" step="0.1" value="0.1"
+                                   oninput="updateViscosity(this.value)">
+                            <div class="slider-value" id="viscosity-slider-value">0.1</div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Gravity</div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="gravity-slider" min="-20.0" max="0.0" step="0.5" value="-9.8"
+                                   oninput="updateGravity(this.value)">
+                            <div class="slider-value" id="gravity-slider-value">-9.8</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Tab -->
+            <div id="debug-tab" class="tab-content">
+                <div class="panel-header">🐛 Debug Options</div>
+                <div class="panel-content">
+                    <div class="control-group">
+                        <div class="control-label">Visualization</div>
+                        <button class="button secondary" onclick="toggleWireframe()">🔗 Wireframe</button>
+                        <button class="button secondary" onclick="toggleVelocityVectors()">➡️ Velocity</button>
+                        <button class="button secondary" onclick="toggleDensityField()">🌡️ Density</button>
+                        <button class="button secondary" onclick="togglePressureField()">💨 Pressure</button>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Performance</div>
+                        <button class="button secondary" onclick="togglePerformanceOverlay()">📊 Profiler</button>
+                        <button class="button secondary" onclick="captureFrame()">📸 Capture</button>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Quality</div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="quality-slider" min="0.25" max="2.0" step="0.25" value="1.0"
+                                   oninput="updateRenderQuality(this.value)">
+                            <div class="slider-value" id="quality-slider-value">1.0x</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="canvas-container">
+            <canvas id="canvas" width="800" height="600"></canvas>
+
+            <!-- Status Overlay -->
+            <div class="engine-status" id="status">
+                Initializing WebGPU Fluid Demo...
+            </div>
+
+            <!-- Performance Overlay -->
+            <div class="perf-overlay" id="perf-overlay" style="display: none;">
+                <div class="perf-item">
+                    <span>CPU:</span>
+                    <span id="cpu-usage">0%</span>
+                </div>
+                <div class="perf-item">
+                    <span>GPU:</span>
+                    <span id="gpu-usage">0%</span>
+                </div>
+                <div class="perf-item">
+                    <span>Memory:</span>
+                    <span id="memory-usage">0MB</span>
+                </div>
+                <div class="perf-item">
+                    <span>Draw Calls:</span>
+                    <span id="draw-calls">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-left">
+            <span id="status-ready">Ready</span>
+            <span>|</span>
+            <span>Fluid Demo</span>
+            <span>|</span>
+            <span id="webgpu-status">WebGPU Initializing...</span>
+        </div>
+        <div class="status-right">
+            <span id="fps-display">-- FPS</span>
+            <span>|</span>
+            <span id="particles-display">0 Particles</span>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let isSimulationRunning = false;
+        let simulationTime = 0;
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let fpsHistory = [];
+
+        // Engine Status Management
+        const statusDiv = document.getElementById('status');
+
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = 'engine-status ' + type;
+        }
+
+        // Tab switching functionality
+        function switchTab(evt, tabName) {
+            const tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+
+            const tablinks = document.getElementsByClassName("tab");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Simulation controls
+        function toggleSimulation() {
+            isSimulationRunning = !isSimulationRunning;
+            const btn = document.getElementById('play-pause-btn');
+            btn.textContent = isSimulationRunning ? '⏸ Pause' : '▶ Play';
+            updateStatusBar();
+        }
+
+        function resetSimulation() {
+            isSimulationRunning = false;
+            simulationTime = 0;
+            document.getElementById('play-pause-btn').textContent = '▶ Play';
+            document.getElementById('sim-time').textContent = '0.0';
+            updateStatusBar();
+        }
+
+        function stepFrame() {
+            // Single frame step logic would go here
+            console.log('Stepping one frame');
+        }
+
+        // Parameter update functions
+        function updateParticleCount(value) {
+            document.getElementById('particle-slider-value').textContent = value;
+            document.getElementById('particle-count').textContent = value;
+            document.getElementById('particles-display').textContent = value + ' Particles';
+        }
+
+        function updateTimeScale(value) {
+            document.getElementById('timescale-slider-value').textContent = value + 'x';
+        }
+
+        function updateSmoothingRadius(value) {
+            document.getElementById('smoothing-slider-value').textContent = value;
+        }
+
+        function updatePressure(value) {
+            document.getElementById('pressure-slider-value').textContent = value;
+        }
+
+        function updateViscosity(value) {
+            document.getElementById('viscosity-slider-value').textContent = value;
+        }
+
+        function updateGravity(value) {
+            document.getElementById('gravity-slider-value').textContent = value;
+        }
+
+        function updateRenderQuality(value) {
+            document.getElementById('quality-slider-value').textContent = value + 'x';
+        }
+
+        // Debug functions
+        function toggleWireframe() {
+            console.log('Toggling wireframe mode');
+        }
+
+        function toggleVelocityVectors() {
+            console.log('Toggling velocity vectors');
+        }
+
+        function toggleDensityField() {
+            console.log('Toggling density field visualization');
+        }
+
+        function togglePressureField() {
+            console.log('Toggling pressure field visualization');
+        }
+
+        function togglePerformanceOverlay() {
+            const overlay = document.getElementById('perf-overlay');
+            overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function captureFrame() {
+            console.log('Capturing frame');
+        }
+
+        // Performance monitoring
+        function updatePerformanceStats() {
+            const now = performance.now();
+            const deltaTime = now - lastFrameTime;
+            lastFrameTime = now;
+
+            // Update FPS
+            fpsHistory.push(1000 / deltaTime);
+            if (fpsHistory.length > 60) fpsHistory.shift();
+
+            const avgFPS = fpsHistory.reduce((a, b) => a + b, 0) / fpsHistory.length;
+            document.getElementById('fps-counter').textContent = Math.round(avgFPS);
+            document.getElementById('fps-display').textContent = Math.round(avgFPS) + ' FPS';
+            document.getElementById('frame-time').textContent = deltaTime.toFixed(1);
+
+            // Update simulation time
+            if (isSimulationRunning) {
+                simulationTime += deltaTime / 1000;
+                document.getElementById('sim-time').textContent = simulationTime.toFixed(1);
+            }
+
+            // Update performance overlay (mock data)
+            document.getElementById('cpu-usage').textContent = Math.round(30 + Math.random() * 20) + '%';
+            document.getElementById('gpu-usage').textContent = Math.round(40 + Math.random() * 30) + '%';
+            document.getElementById('memory-usage').textContent = Math.round(50 + Math.random() * 100) + 'MB';
+            document.getElementById('draw-calls').textContent = Math.round(5 + Math.random() * 10);
+
+            frameCount++;
+            requestAnimationFrame(updatePerformanceStats);
+        }
+
+        function updateStatusBar() {
+            const statusReady = document.getElementById('status-ready');
+            statusReady.textContent = isSimulationRunning ? 'Running' : 'Paused';
+        }
+
+        // Enhanced WebGPU diagnostics
+        async function checkWebGPUSupport() {
+            console.log('🔍 Running WebGPU diagnostics for Fluid Demo...');
+            document.getElementById('webgpu-status').textContent = 'WebGPU Checking...';
+
+            if (!navigator.gpu) {
+                updateStatus('WebGPU is not supported in this browser', 'error');
+                document.getElementById('webgpu-status').textContent = 'WebGPU Not Supported';
+                console.error('❌ navigator.gpu is not available');
+                return false;
+            }
+
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    updateStatus('WebGPU adapter request failed', 'error');
+                    document.getElementById('webgpu-status').textContent = 'WebGPU Adapter Failed';
+                    console.error('❌ Failed to get WebGPU adapter');
+                    return false;
+                }
+
+                console.log('✅ WebGPU adapter obtained:', adapter);
+
+                const device = await adapter.requestDevice();
+                if (!device) {
+                    updateStatus('WebGPU device request failed', 'error');
+                    document.getElementById('webgpu-status').textContent = 'WebGPU Device Failed';
+                    console.error('❌ Failed to get WebGPU device');
+                    return false;
+                }
+
+                console.log('✅ WebGPU device obtained:', device);
+                updateStatus('WebGPU Fluid Demo initialized successfully!', 'success');
+                document.getElementById('webgpu-status').textContent = 'WebGPU Active';
+                document.getElementById('status-ready').textContent = 'Ready';
+                return true;
+
+            } catch (error) {
+                updateStatus('WebGPU error: ' + error.message, 'error');
+                document.getElementById('webgpu-status').textContent = 'WebGPU Error';
+                console.error('❌ WebGPU error:', error);
+                return false;
+            }
+        }
+
+        // Initialize functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize performance monitoring
+            requestAnimationFrame(updatePerformanceStats);
+
+            // Initialize parameter displays
+            updateParticleCount(1000);
+
+            // Run WebGPU diagnostics
+            checkWebGPUSupport();
+        });
+
+        // Override console methods to show status
+        const originalError = console.error;
+        const originalLog = console.log;
+
+        console.error = function(...args) {
+            const message = args.join(' ');
+            updateStatus('Error: ' + message, 'error');
+            originalError.apply(console, args);
+        };
+
+        console.log = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('initialized successfully')) {
+                updateStatus('Fluid Demo running successfully!', 'success');
+            } else if (message.includes('🌊 Fluid Demo')) {
+                updateStatus('Fluid Demo initialized!', 'success');
+            }
+            originalLog.apply(console, args);
+        };
+
+        // Catch unhandled errors
+        window.addEventListener('error', (event) => {
+            const errorMsg = event.error ? event.error.message : event.message;
+            updateStatus('Runtime Error: ' + errorMsg, 'error');
+            console.error('Unhandled error:', event.error || event);
+
+            if (event.error && event.error.stack) {
+                console.error('Stack trace:', event.error.stack);
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            let errorMsg = 'Unknown promise rejection';
+
+            if (typeof event.reason === 'string') {
+                errorMsg = event.reason;
+            } else if (event.reason instanceof Error) {
+                errorMsg = event.reason.message;
+            } else if (event.reason && event.reason.toString) {
+                errorMsg = event.reason.toString();
+            }
+
+            if (errorMsg.includes('Aborted(Assertion failed)')) {
+                updateStatus('💥 Assertion Failed - Check console for details', 'error');
+                console.error('🚨 Emscripten Assertion Failed:');
+                console.error('This usually indicates:');
+                console.error('1. Memory access violation');
+                console.error('2. Stack overflow');
+                console.error('3. WebGPU initialization failure');
+                console.error('4. Async timing issue');
+            } else {
+                updateStatus('Promise Error: ' + errorMsg, 'error');
+            }
+
+            console.error('Unhandled promise rejection:', event.reason);
+        });
+    </script>
+
+    <script async type="text/javascript" src="fluid_demo.js"></script>
+</body>
+</html>

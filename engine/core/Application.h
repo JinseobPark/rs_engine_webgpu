@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <iostream>
+#include "Config.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -35,6 +36,9 @@ protected:
     uint32_t windowHeight = 600;
     bool shouldClose = false;
     bool isInitialized = false;
+
+    // 플랫폼별 설정
+    PlatformLimits platformLimits = EngineConfig::getLimits();
 
 public:
     virtual ~Application() = default;

@@ -6,3 +6,4 @@ option(BUILD_WEB "Build Web (Emscripten + WebGPU)" OFF)
 
 add_subdirectory(engine)
 add_subdirectory(apps/viewer)
+add_subdirectory(apps/fluid_demo)
