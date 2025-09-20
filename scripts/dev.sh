@@ -15,8 +15,28 @@ build_web() {
     fi
 }
 
+# Function to quickly copy HTML file
+copy_html() {
+    echo "🔄 HTML file changed, copying..."
+    cp apps/viewer/index.html build_web/apps/viewer/index.html
+    echo "✅ HTML updated at $(date)"
+}
+
+# Function to handle file changes
+handle_change() {
+    local changed_file="$1"
+    if [[ "$changed_file" == *"index.html"* ]]; then
+        copy_html
+    else
+        build_web
+    fi
+}
+
 # Initial build
 build_web
+
+# Kill any existing server on port 3377
+./scripts/kill-port.sh 3377
 
 # Start server in background
 echo "🌍 Starting web server at http://localhost:3377"
@@ -33,13 +53,14 @@ echo "   - Files being watched: apps/, engine/"
 
 # Watch for changes (macOS)
 if command -v fswatch >/dev/null 2>&1; then
-    fswatch -o apps/ engine/ | while read f; do
-        echo "🔄 File change detected, rebuilding..."
-        build_web
+    fswatch -r apps/ engine/ | while read changed_file; do
+        echo "🔄 File change detected: $changed_file"
+        handle_change "$changed_file"
     done
 else
     echo "💡 Install fswatch for auto-reload: brew install fswatch"
     echo "   For now, manually run 'npm run build' when you change files"
+    echo "   Or use 'npm run copy-html' to update HTML quickly"
     wait $SERVER_PID
 fi
 

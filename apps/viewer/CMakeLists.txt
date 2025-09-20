@@ -34,11 +34,12 @@ if(EMSCRIPTEN)
         --source-map-base=http://localhost:3377/
     )
     
-    # Copy HTML file to build directory
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/index.html
-        ${CMAKE_CURRENT_BINARY_DIR}/index.html
-        COPYONLY
+    # Copy HTML file to build directory (always copy, even if newer)
+    add_custom_command(TARGET viewer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/index.html
+            ${CMAKE_CURRENT_BINARY_DIR}/index.html
+        COMMENT "Copying updated index.html to build directory"
     )
     
 else()

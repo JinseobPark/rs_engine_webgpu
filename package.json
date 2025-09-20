@@ -18,7 +18,10 @@
     "build:native:win": "./run_native.bat",
     "build:web": "emcmake cmake -S . -B build_web -DBUILD_WEB=ON && cmake --build build_web --target viewer",
     "build:fast": "cmake --build build_web --target viewer",
-    "preview": "cd build_web/apps/viewer && echo '🌍 Server running at http://localhost:3377' && python3 -m http.server 3377",
+    "copy-html": "cp apps/viewer/index.html build_web/apps/viewer/index.html && echo '✅ HTML file updated'",
+    "kill-server": "./scripts/kill-port.sh 3377",
+    "kill-port": "./scripts/kill-port.sh",
+    "preview": "./scripts/kill-port.sh 3377 && cd build_web/apps/viewer && echo '🌍 Server running at http://localhost:3377' && python3 -m http.server 3377",
     "start": "npm run preview",
     "serve": "npm run preview",
     "clean": "rm -rf build build_web",
@@ -28,7 +31,7 @@
     "test:web": "npm run build:web && echo '✅ Web build test passed'",
     "test:native": "./run_native.sh",
     "test:native:windows": "powershell -ExecutionPolicy Bypass -File ./run_native.ps1",
-    "help": "echo '🚀 Available commands:\n  npm run dev      - Start development with auto-reload\n  npm run build    - Build web version\n  npm run preview  - Serve built files\n  npm run native   - Run native application (Unix/macOS)\n  npm run native:windows - Run native application (Windows PowerShell)\n  npm run native:win - Run native application (Windows Batch)\n  npm run build:dawn:windows - Build Dawn library (Windows PowerShell)\n  npm run build:dawn:win - Build Dawn library (Windows Batch)\n  npm run clean    - Clean all builds'"
+    "help": "echo '🚀 Available commands:\n  npm run dev      - Start development with auto-reload\n  npm run build    - Build web version\n  npm run preview  - Serve built files (auto-kill port 3377)\n  npm run copy-html - Quick HTML update\n  npm run kill-server - Kill server on port 3377\n  npm run kill-port [PORT] - Kill server on specific port\n  npm run native   - Run native application (Unix/macOS)\n  npm run native:windows - Run native application (Windows PowerShell)\n  npm run native:win - Run native application (Windows Batch)\n  npm run build:dawn:windows - Build Dawn library (Windows PowerShell)\n  npm run build:dawn:win - Build Dawn library (Windows Batch)\n  npm run clean    - Clean all builds'"
   },
   "repository": {
     "type": "git",

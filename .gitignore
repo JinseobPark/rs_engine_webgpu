@@ -4,6 +4,7 @@ build_native/
 build_debug/
 build_release/
 build_web/
+build-web/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
