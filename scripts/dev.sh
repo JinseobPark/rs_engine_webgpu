@@ -6,7 +6,10 @@ echo "🚀 Starting development mode..."
 # Function to build web
 build_web() {
     echo "🔨 Building web version..."
+    # Force reconfigure and rebuild engine when engine files change
     emcmake cmake -S . -B build_web -DBUILD_WEB=ON > /dev/null 2>&1
+    # Always rebuild engine library first, then viewer
+    cmake --build build_web --target rs_engine_webgpu > /dev/null 2>&1
     cmake --build build_web --target viewer > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "✅ Build successful at $(date)"
@@ -27,6 +30,11 @@ handle_change() {
     local changed_file="$1"
     if [[ "$changed_file" == *"index.html"* ]]; then
         copy_html
+    elif [[ "$changed_file" == *"engine/"* ]]; then
+        echo "🔧 Engine change detected, forcing rebuild..."
+        # Force clean rebuild when engine changes
+        rm -rf build_web/engine/librs_engine_webgpu.a
+        build_web
     else
         build_web
     fi

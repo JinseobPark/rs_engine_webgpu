@@ -1,15 +1,44 @@
 # engine/CMakeLists.txt
 
+# Generate embedded shaders for web builds
+if(EMSCRIPTEN)
+    set(EMBEDDED_SHADERS_HEADER "${CMAKE_CURRENT_BINARY_DIR}/rendering/EmbeddedShaders.h")
+
+    add_custom_command(
+        OUTPUT ${EMBEDDED_SHADERS_HEADER}
+        COMMAND python3 "${CMAKE_SOURCE_DIR}/scripts/embed_shaders.py"
+                "${CMAKE_SOURCE_DIR}/shaders"
+                "${EMBEDDED_SHADERS_HEADER}"
+        DEPENDS "${CMAKE_SOURCE_DIR}/scripts/embed_shaders.py"
+        COMMENT "Generating embedded shaders for web build"
+        VERBATIM
+    )
+
+    add_custom_target(generate_embedded_shaders
+        DEPENDS ${EMBEDDED_SHADERS_HEADER}
+    )
+endif()
+
 # Create the engine library
 if(EMSCRIPTEN)
     add_library(rs_engine_webgpu STATIC
         core/Application.cpp
         platform/WebApplication.cpp
+        rendering/ShaderManager.cpp
+        rendering/CubeRenderer.cpp
     )
+
+    # Make sure embedded shaders are generated before building
+    add_dependencies(rs_engine_webgpu generate_embedded_shaders)
+
+    # Add the directory containing the generated header to include path
+    target_include_directories(rs_engine_webgpu PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 else()
     add_library(rs_engine_webgpu STATIC
         core/Application.cpp
         platform/NativeApplication.cpp
+        rendering/ShaderManager.cpp
+        rendering/CubeRenderer.cpp
     )
 endif()
 

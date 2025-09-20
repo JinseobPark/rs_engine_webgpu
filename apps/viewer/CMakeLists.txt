@@ -34,12 +34,20 @@ if(EMSCRIPTEN)
         --source-map-base=http://localhost:3377/
     )
     
-    # Copy HTML file to build directory (always copy, even if newer)
+    # Copy original HTML file to build directory and keep it updated
     add_custom_command(TARGET viewer POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_CURRENT_SOURCE_DIR}/index.html
             ${CMAKE_CURRENT_BINARY_DIR}/index.html
         COMMENT "Copying updated index.html to build directory"
+    )
+
+    # Copy shaders directory to build directory for web runtime access
+    add_custom_command(TARGET viewer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/shaders
+            ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        COMMENT "Copying shaders to web build directory"
     )
     
 else()

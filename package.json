@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "./scripts/dev.sh",
+    "dev:nocache": "./scripts/dev.sh && echo '💡 Open with Ctrl+Shift+R or Cmd+Shift+R for cache bypass'",
     "dev:simple": "npm run build && npm run preview",
     "native": "./run_native.sh",
     "native:windows": "powershell -ExecutionPolicy Bypass -File ./run_native.ps1",
@@ -17,6 +18,8 @@
     "build:native:windows": "powershell -ExecutionPolicy Bypass -File ./run_native.ps1",
     "build:native:win": "./run_native.bat",
     "build:web": "emcmake cmake -S . -B build_web -DBUILD_WEB=ON && cmake --build build_web --target viewer",
+    "build:web:clean": "npm run clean:web && npm run build:web",
+    "build:web:engine": "emcmake cmake -S . -B build_web -DBUILD_WEB=ON && cmake --build build_web --target rs_engine_webgpu",
     "build:web:fluid": "emcmake cmake -S . -B build_web -DBUILD_WEB=ON && cmake --build build_web --target fluid_demo",
     "build:native:fluid": "cmake -S . -B build_native && cmake --build build_native --target fluid_demo",
     "preview:fluid": "./scripts/kill-port.sh 3378 && cd build_web/apps/fluid_demo && echo '🌊 Fluid Demo running at http://localhost:3378' && python3 -m http.server 3378",

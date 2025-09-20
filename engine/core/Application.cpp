@@ -7,79 +7,17 @@
 
 namespace rs_engine {
 
-bool Application::createRenderPipeline() {
-    // Vertex shader (WGSL)
-    const char* vertexShaderSource = R"(
-@vertex
-fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-    var pos = array<vec2f, 3>(
-        vec2f( 0.0,  0.5),
-        vec2f(-0.5, -0.5),
-        vec2f( 0.5, -0.5)
-    );
-    return vec4f(pos[vertexIndex], 0.0, 1.0);
-}
-)";
+bool Application::initializeRenderer() {
+    std::cout << "🎯 Initializing CubeRenderer..." << std::endl;
 
-    // Fragment shader (WGSL)
-    const char* fragmentShaderSource = R"(
-@fragment
-fn fs_main() -> @location(0) vec4f {
-    return vec4f(1.0, 0.5, 0.2, 1.0);
-}
-)";
+    cubeRenderer = std::make_unique<CubeRenderer>(&device);
 
-    // Create shader modules
-    wgpu::ShaderModuleWGSLDescriptor wgslDesc = {};
-    wgslDesc.code = vertexShaderSource;
-
-    wgpu::ShaderModuleDescriptor vertexShaderDesc = {};
-    vertexShaderDesc.nextInChain = &wgslDesc;
-    wgpu::ShaderModule vertexShader = device.CreateShaderModule(&vertexShaderDesc);
-
-    wgslDesc.code = fragmentShaderSource;
-    wgpu::ShaderModuleDescriptor fragmentShaderDesc = {};
-    fragmentShaderDesc.nextInChain = &wgslDesc;
-    wgpu::ShaderModule fragmentShader = device.CreateShaderModule(&fragmentShaderDesc);
-
-    // Create render pipeline
-    wgpu::RenderPipelineDescriptor pipelineDesc = {};
-    
-    // Vertex stage
-    pipelineDesc.vertex.module = vertexShader;
-    pipelineDesc.vertex.entryPoint = "vs_main";
-
-    // Fragment stage
-    wgpu::FragmentState fragmentState = {};
-    fragmentState.module = fragmentShader;
-    fragmentState.entryPoint = "fs_main";
-
-    // Color target
-    wgpu::ColorTargetState colorTarget = {};
-    colorTarget.format = wgpu::TextureFormat::BGRA8Unorm;
-    colorTarget.writeMask = wgpu::ColorWriteMask::All;
-
-    fragmentState.targetCount = 1;
-    fragmentState.targets = &colorTarget;
-    pipelineDesc.fragment = &fragmentState;
-
-    // Primitive state
-    pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
-    pipelineDesc.primitive.stripIndexFormat = wgpu::IndexFormat::Undefined;
-    pipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
-    pipelineDesc.primitive.cullMode = wgpu::CullMode::None;
-
-    // Multisample state
-    pipelineDesc.multisample.count = 1;
-    pipelineDesc.multisample.mask = ~0u;
-    pipelineDesc.multisample.alphaToCoverageEnabled = false;
-
-    pipeline = device.CreateRenderPipeline(&pipelineDesc);
-    if (!pipeline) {
-        std::cerr << "Failed to create render pipeline" << std::endl;
+    if (!cubeRenderer->initialize()) {
+        std::cerr << "❌ Failed to initialize cube renderer" << std::endl;
         return false;
     }
 
+    std::cout << "✅ CubeRenderer initialized successfully!" << std::endl;
     return true;
 }
 
@@ -98,7 +36,7 @@ void Application::configureSurface() {
 void Application::render() {
     wgpu::SurfaceTexture surfaceTexture;
     surface.GetCurrentTexture(&surfaceTexture);
-    
+
 #ifdef __EMSCRIPTEN__
     if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::Success) {
         return;
@@ -127,8 +65,11 @@ void Application::render() {
     renderPassDesc.colorAttachments = &colorAttachment;
 
     wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
-    renderPass.SetPipeline(pipeline);
-    renderPass.Draw(3, 1, 0, 0);
+
+    if (cubeRenderer) {
+        cubeRenderer->render(renderPass);
+    }
+
     renderPass.End();
 
     wgpu::CommandBufferDescriptor cmdBufferDesc = {};
@@ -150,7 +91,11 @@ void Application::run() {
         Application* app = static_cast<Application*>(userData);
         if (app->isInitialized && !app->shouldClose) {
             app->handleEvents();
-            app->update(0.016f); // 60fps
+            float deltaTime = 0.016f; // 60fps
+            app->update(deltaTime);
+            if (app->cubeRenderer) {
+                app->cubeRenderer->update(deltaTime);
+            }
             app->draw();
         }
     }, this, 60, 1);
@@ -158,7 +103,11 @@ void Application::run() {
     // 네이티브에서는 직접 루프 실행
     while (!shouldClose) {
         handleEvents();
-        update(0.016f); // 60fps 가정
+        float deltaTime = 0.016f; // 60fps 가정
+        update(deltaTime);
+        if (cubeRenderer) {
+            cubeRenderer->update(deltaTime);
+        }
         draw();
     }
 #endif

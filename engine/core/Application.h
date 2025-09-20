@@ -3,6 +3,7 @@
 #include <memory>
 #include <iostream>
 #include "Config.h"
+#include "../rendering/CubeRenderer.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -29,7 +30,9 @@ protected:
     wgpu::Adapter adapter = nullptr;
     wgpu::Device device = nullptr;
     wgpu::Surface surface = nullptr;
-    wgpu::RenderPipeline pipeline = nullptr;
+
+    // 렌더러
+    std::unique_ptr<CubeRenderer> cubeRenderer;
 
     // 공통 상태
     uint32_t windowWidth = 800;
@@ -52,13 +55,19 @@ public:
     virtual bool initWebGPU() = 0;
 
     // 공통 구현
-    bool createRenderPipeline();
+    bool initializeRenderer();
     void configureSurface();
     void render();
 
     // 애플리케이션 로직 (사용자 구현)
     virtual bool init() {
-        return initPlatform() && initWebGPU() && createRenderPipeline() && onInit();
+#ifdef __EMSCRIPTEN__
+        // Web version: renderer initialization happens after async WebGPU setup
+        return initPlatform() && initWebGPU() && onInit();
+#else
+        // Native version: synchronous initialization
+        return initPlatform() && initWebGPU() && initializeRenderer() && onInit();
+#endif
     }
     virtual bool onInit() { return true; }
     virtual void update(float deltaTime) {}

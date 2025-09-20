@@ -6,6 +6,7 @@ FluidDemoApp::~FluidDemoApp() {}
 
 bool FluidDemoApp::onInit()
 {
+    BaseApp::onInit();
     std::cout << "🌊 Fluid Demo initialized!" << std::endl;
         std::cout << "Platform limits: " << std::endl;
         std::cout << "  Max particles: " << platformLimits.maxParticles << std::endl;
