@@ -7,6 +7,8 @@
 
 namespace rs_engine {
 
+bool NativeApplication::s_glfwInitialized = false;
+
 void NativeApplication::errorCallback(int error, const char* description) {
     std::cerr << "GLFW Error " << error << ": " << description << std::endl;
 }
@@ -31,6 +33,7 @@ bool NativeApplication::initPlatform() {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return false;
     }
+    s_glfwInitialized = true;
 
     // Create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -40,6 +43,7 @@ bool NativeApplication::initPlatform() {
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
+        s_glfwInitialized = false;
         return false;
     }
 
@@ -104,9 +108,26 @@ void NativeApplication::handleEvents() {
 }
 
 void NativeApplication::cleanup() {
+    // Cleanup GUI first (before GLFW termination)
+    if (guiManager && guiManager->isInitialized()) {
+        guiManager->shutdown();
+        guiManager.reset();
+    }
+
+    // Cleanup scene
+    if (scene) {
+        scene.reset();
+    }
+
+    // Then cleanup GLFW resources
     if (window) {
         glfwDestroyWindow(window);
+        window = nullptr;
+    }
+    
+    if (s_glfwInitialized) {
         glfwTerminate();
+        s_glfwInitialized = false;
     }
 }
 

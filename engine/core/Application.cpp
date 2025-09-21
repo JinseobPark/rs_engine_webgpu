@@ -31,6 +31,20 @@ bool Application::initializeScene() {
     return true;
 }
 
+bool Application::initializeGUI() {
+    std::cout << "🎯 Initializing GUI..." << std::endl;
+
+    guiManager = std::make_unique<rs_engine::gui::ImGuiManager>();
+
+    if (!guiManager->initialize(getWindow(), device, wgpu::TextureFormat::BGRA8Unorm)) {
+        std::cerr << "❌ Failed to initialize GUI" << std::endl;
+        return false;
+    }
+
+    std::cout << "✅ GUI initialized successfully!" << std::endl;
+    return true;
+}
+
 void Application::configureSurface() {
     wgpu::SurfaceConfiguration surfaceConfig = {};
     surfaceConfig.device = device;
@@ -78,6 +92,12 @@ void Application::render() {
 
     if (scene) {
         scene->render(renderPass);
+    }
+
+    // Render GUI
+    if (guiManager && guiManager->isInitialized()) {
+        guiManager->newFrame();
+        guiManager->render(renderPass);
     }
 
     renderPass.End();

@@ -8,6 +8,7 @@ namespace rs_engine {
 class NativeApplication : public Application {
 private:
     GLFWwindow* window = nullptr;
+    static bool s_glfwInitialized;
     
     static void errorCallback(int error, const char* description);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -17,6 +18,10 @@ public:
     bool initWebGPU() override;
     void handleEvents() override;
     void cleanup() override;
+    GLFWwindow* getWindow() override { return window; }
+    
+    // Static method to check if GLFW is still initialized
+    static bool isGLFWInitialized() { return s_glfwInitialized; }
 };
 
 } // namespace rs_engine

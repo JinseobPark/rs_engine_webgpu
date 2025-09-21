@@ -84,6 +84,14 @@ void WebApplication::onDeviceReceived() {
         return;
     }
 
+    // // Initialize GUI after scene
+    // std::cout << "🎯 Initializing GUI after scene ready..." << std::endl;
+    // if (!initializeGUI()) {
+    //     std::cerr << "❌ Failed to initialize GUI" << std::endl;
+    //     initializationFailed = true;
+    //     return;
+    // }
+
     // Surface configuration
     configureSurface();
 
@@ -98,7 +106,7 @@ bool WebApplication::createSurface() {
     wgpu::SurfaceDescriptor surfaceDesc = {};
     surfaceDesc.nextInChain = reinterpret_cast<wgpu::ChainedStruct*>(&htmlSurfaceDesc);
 
-    surface = instance.CreateSurface(&surfaceDesc);
+        surface = instance.CreateSurface(&surfaceDesc);
     return surface != nullptr;
 }
 
@@ -159,6 +167,10 @@ void WebApplication::cleanup() {
     emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, nullptr);
 
     // WebGPU 리소스 해제 (순서 중요)
+    // if (guiManager) {
+    //     guiManager.reset();
+    // }
+
     if (scene) {
         scene.reset();
     }

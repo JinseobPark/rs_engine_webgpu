@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Config.h"
 #include "../rendering/scene/Scene.h"
+#include "../gui/ImGuiManager.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -12,7 +13,6 @@
     #include <webgpu/webgpu_cpp.h>
     #include <emscripten/html5_webgpu.h>
 #else
-    #define GLFW_NO_API
     #include <GLFW/glfw3.h>
     #include <dawn/dawn_proc.h>
     #include <dawn/native/DawnNative.h>
@@ -34,6 +34,9 @@ protected:
     // 렌더러
     std::unique_ptr<rs_engine::rendering::Scene> scene;
 
+    // GUI
+    std::unique_ptr<rs_engine::gui::ImGuiManager> guiManager;
+
     // 공통 상태
     uint32_t windowWidth = 800;
     uint32_t windowHeight = 600;
@@ -50,6 +53,7 @@ public:
     virtual bool initPlatform() = 0;
     virtual void handleEvents() = 0;
     virtual void cleanup() = 0;
+    virtual GLFWwindow* getWindow() = 0;
 
     // 공통 WebGPU 초기화 (플랫폼별로 다름)
     virtual bool initWebGPU() = 0;
@@ -57,17 +61,18 @@ public:
     // 공통 구현
     bool initializeRenderer();
     bool initializeScene();
+    bool initializeGUI();
     void configureSurface();
     void render();
 
     // 애플리케이션 로직 (사용자 구현)
     virtual bool init() {
 #ifdef __EMSCRIPTEN__
-        // Web version: renderer initialization happens after async WebGPU setup
+        // Web version: async initialization - scene and GUI are initialized in async callbacks
         return initPlatform() && initWebGPU() && onInit();
 #else
         // Native version: synchronous initialization
-        return initPlatform() && initWebGPU() && initializeScene() && onInit();
+        return initPlatform() && initWebGPU() && initializeScene() && initializeGUI() && onInit();
 #endif
     }
     virtual bool onInit() { return true; }

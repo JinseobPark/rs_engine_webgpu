@@ -2,7 +2,12 @@
 
 FluidDemoApp::FluidDemoApp() {}
 
-FluidDemoApp::~FluidDemoApp() {}
+FluidDemoApp::~FluidDemoApp() {
+    // Explicitly cleanup physics objects before base class destruction
+    // This ensures proper cleanup order and prevents GLFW errors
+    physicsWorld.reset();
+    fluidSim.reset();
+}
 
 bool FluidDemoApp::onInit()
 {

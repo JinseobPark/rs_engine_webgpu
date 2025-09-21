@@ -32,6 +32,7 @@ public:
     bool initWebGPU() override;
     void handleEvents() override;
     void cleanup() override;
+    GLFWwindow* getWindow() override { return nullptr; } // Web doesn't use GLFW
 };
 
 } // namespace rs_engine

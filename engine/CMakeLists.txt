@@ -19,6 +19,29 @@ if(EMSCRIPTEN)
     )
 endif()
 
+# Add ImGui source files
+set(IMGUI_SOURCES
+    ${CMAKE_SOURCE_DIR}/extern/imgui/imgui.cpp
+    ${CMAKE_SOURCE_DIR}/extern/imgui/imgui_demo.cpp
+    ${CMAKE_SOURCE_DIR}/extern/imgui/imgui_draw.cpp
+    ${CMAKE_SOURCE_DIR}/extern/imgui/imgui_tables.cpp
+    ${CMAKE_SOURCE_DIR}/extern/imgui/imgui_widgets.cpp
+)
+
+# Add ImGui backend sources based on platform
+if(EMSCRIPTEN)
+    # For web builds, don't use the WebGPU backend due to API compatibility issues
+    # Use minimal ImGui setup for web
+    set(IMGUI_BACKEND_SOURCES
+        # No backend sources for web - we'll handle rendering manually
+    )
+else()
+    set(IMGUI_BACKEND_SOURCES
+        ${CMAKE_SOURCE_DIR}/extern/imgui/backends/imgui_impl_wgpu.cpp
+        ${CMAKE_SOURCE_DIR}/extern/imgui/backends/imgui_impl_glfw.cpp
+    )
+endif()
+
 # Create the engine library
 if(EMSCRIPTEN)
     add_library(rs_engine_webgpu STATIC
@@ -28,6 +51,9 @@ if(EMSCRIPTEN)
         rendering/CubeRenderer.cpp
         rendering/scene/Camera.cpp
         rendering/scene/Scene.cpp
+        gui/ImGuiManager.cpp
+        ${IMGUI_SOURCES}
+        ${IMGUI_BACKEND_SOURCES}
     )
 
     # Make sure embedded shaders are generated before building
@@ -43,6 +69,9 @@ else()
         rendering/CubeRenderer.cpp
         rendering/scene/Camera.cpp
         rendering/scene/Scene.cpp
+        gui/ImGuiManager.cpp
+        ${IMGUI_SOURCES}
+        ${IMGUI_BACKEND_SOURCES}
     )
 endif()
 
@@ -55,9 +84,12 @@ set_target_properties(rs_engine_webgpu PROPERTIES
 # Platform-specific setup
 if(EMSCRIPTEN)
     # Web version setup
-    target_compile_options(rs_engine_webgpu PRIVATE 
+    target_compile_options(rs_engine_webgpu PRIVATE
         -sUSE_WEBGPU=1
     )
+
+    # For Emscripten, don't define any ImGui WebGPU backend flags
+    # The backend will automatically detect the proper WebGPU implementation
     
     target_link_options(rs_engine_webgpu INTERFACE
         -sUSE_WEBGPU=1
@@ -81,7 +113,7 @@ else()
     set(DAWN_ROOT "${CMAKE_SOURCE_DIR}/extern/dawn")
     set(DAWN_BUILD "${DAWN_ROOT}/build")
     set(GLFW_ROOT "${CMAKE_SOURCE_DIR}/extern/glfw")
-    
+
     # Add GLFW subdirectory and configure it
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -115,6 +147,12 @@ else()
         ${TINT_LIBS}
         glfw  # Use our submodule GLFW instead of Dawn's
     )
+
+    # Define GLFW_NO_API for native builds
+    # target_compile_definitions(rs_engine_webgpu PUBLIC GLFW_NO_API)
+
+    # Define ImGui WebGPU backend for Dawn
+    target_compile_definitions(rs_engine_webgpu PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_DAWN)
     
     # Add macOS frameworks
     if(APPLE)
@@ -142,6 +180,8 @@ else()
 endif()
 
 # Include directories for users of this library
-target_include_directories(rs_engine_webgpu PUBLIC 
+target_include_directories(rs_engine_webgpu PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/extern/imgui
+    ${CMAKE_SOURCE_DIR}/extern/imgui/backends
 )
