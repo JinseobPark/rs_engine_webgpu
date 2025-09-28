@@ -17,11 +17,19 @@ void NativeApplication::keyCallback(GLFWwindow* window, int key, int scancode, i
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
-    
+
     // Get application instance from window user pointer
     NativeApplication* app = static_cast<NativeApplication*>(glfwGetWindowUserPointer(window));
     if (app) {
         app->setShouldClose(glfwWindowShouldClose(window));
+    }
+}
+
+void NativeApplication::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    // Get application instance from window user pointer
+    NativeApplication* app = static_cast<NativeApplication*>(glfwGetWindowUserPointer(window));
+    if (app) {
+        app->onWindowResize(width, height);
     }
 }
 
@@ -37,7 +45,7 @@ bool NativeApplication::initPlatform() {
 
     // Create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     
     window = glfwCreateWindow(windowWidth, windowHeight, "WebGPU Triangle - Native", nullptr, nullptr);
     if (!window) {
@@ -49,6 +57,7 @@ bool NativeApplication::initPlatform() {
 
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, keyCallback);
+    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     return true;
 }
@@ -100,6 +109,20 @@ bool NativeApplication::initWebGPU() {
 
     configureSurface();
     return true;
+}
+
+void NativeApplication::onWindowResize(int width, int height) {
+    // Update window dimensions
+    windowWidth = width;
+    windowHeight = height;
+
+    // Reconfigure surface with new dimensions
+    configureSurface();
+
+    // Update ImGui display size if GUI is initialized
+    if (guiManager && guiManager->isInitialized()) {
+        guiManager->onWindowResize(width, height);
+    }
 }
 
 void NativeApplication::handleEvents() {

@@ -31,6 +31,12 @@ protected:
     wgpu::Device device = nullptr;
     wgpu::Surface surface = nullptr;
 
+    // Render target for ImGui viewport
+    wgpu::Texture sceneRenderTexture = nullptr;
+    wgpu::TextureView sceneRenderTextureView = nullptr;
+    uint32_t sceneTextureWidth = 800;
+    uint32_t sceneTextureHeight = 600;
+
     // 렌더러
     std::unique_ptr<rs_engine::rendering::Scene> scene;
 
@@ -64,6 +70,8 @@ public:
     bool initializeGUI();
     void configureSurface();
     void render();
+    bool createSceneRenderTarget();
+    void renderToTexture();
 
     // 애플리케이션 로직 (사용자 구현)
     virtual bool init() {
@@ -72,7 +80,7 @@ public:
         return initPlatform() && initWebGPU() && onInit();
 #else
         // Native version: synchronous initialization
-        return initPlatform() && initWebGPU() && initializeScene() && initializeGUI() && onInit();
+        return initPlatform() && initWebGPU() && initializeScene() && initializeGUI() && createSceneRenderTarget() && onInit();
 #endif
     }
     virtual bool onInit() { return true; }
@@ -85,6 +93,11 @@ public:
     // 상태 확인
     bool getShouldClose() const { return shouldClose; }
     void setShouldClose(bool value) { shouldClose = value; }
+
+    // Render target 접근
+    wgpu::TextureView getSceneTextureView() const { return sceneRenderTextureView; }
+    uint32_t getSceneTextureWidth() const { return sceneTextureWidth; }
+    uint32_t getSceneTextureHeight() const { return sceneTextureHeight; }
 };
 
 } // namespace rs_engine

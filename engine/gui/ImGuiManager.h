@@ -8,6 +8,9 @@
 #endif
 
 namespace rs_engine {
+// Forward declaration
+class Application;
+
 namespace gui {
 
 class ImGuiManager {
@@ -21,19 +24,37 @@ public:
 
     void newFrame();
     void render(wgpu::RenderPassEncoder& renderPass);
+    void onWindowResize(int width, int height);
 
     void showDebugWindow();
     void showSceneDebugger();
     void showPerformanceMetrics();
     void showWebGPUInfo();
     void showMemoryUsage();
+    void setupDockspace();  // Setup main docking space
+    void resetDockingLayout();  // Reset docking layout to default
+    void saveDockingLayout();   // Save current layout (placeholder)
+    void loadDockingLayout();   // Load saved layout (placeholder)
+    
+    // Game Engine GUI panels
+    void showHierarchy();       // Scene hierarchy window
+    void showInspector();       // Object inspector window
+    void showProject();         // Project browser window
+    void showConsole();         // Console/log window
+    void showViewportControls(); // Viewport control panel (compact)
+    void showAssets();          // Asset browser window
+    void showSceneViewport();   // 3D Scene viewport window
 
     bool isInitialized() const { return m_initialized; }
+
+    // Set application reference for accessing render targets
+    void setApplication(Application* app) { m_application = app; }
 
 private:
     bool m_initialized = false;
     GLFWwindow* m_window = nullptr;
     wgpu::Device m_device;
+    Application* m_application = nullptr;
 
     // Debug state
     bool m_showDebugWindow = true;
@@ -41,13 +62,26 @@ private:
     bool m_showPerformanceMetrics = false;
     bool m_showWebGPUInfo = false;
     bool m_showMemoryUsage = false;
-    bool m_showDemo = false;
+    bool m_dockspaceEnabled = true;
+    bool m_showMenuBar = true;
+    
+    // Game Engine GUI panels
+    bool m_showHierarchy = true;
+    bool m_showInspector = true;
+    bool m_showProject = true;
+    bool m_showConsole = true;
+    bool m_showViewport = true;
+    bool m_showAssets = true;
+    bool m_showSceneViewport = true;
 
     // Performance tracking
     float m_frameTime = 0.0f;
     float m_fps = 0.0f;
     int m_frameCount = 0;
     double m_lastTime = 0.0;
+
+    // Scene texture binding for ImGui
+    void* m_sceneTextureID = nullptr;
 };
 
 } // namespace gui

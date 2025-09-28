@@ -41,6 +41,9 @@ bool Application::initializeGUI() {
         return false;
     }
 
+    // Set application reference so ImGui can access render targets
+    guiManager->setApplication(this);
+
     std::cout << "✅ GUI initialized successfully!" << std::endl;
     return true;
 }
@@ -57,7 +60,80 @@ void Application::configureSurface() {
     surface.Configure(&surfaceConfig);
 }
 
+bool Application::createSceneRenderTarget() {
+    // Create render target texture for the scene viewport
+    wgpu::TextureDescriptor textureDesc = {};
+    textureDesc.dimension = wgpu::TextureDimension::e2D;
+    textureDesc.format = wgpu::TextureFormat::BGRA8Unorm;
+    textureDesc.mipLevelCount = 1;
+    textureDesc.sampleCount = 1;
+    textureDesc.size = {sceneTextureWidth, sceneTextureHeight, 1};
+    textureDesc.usage = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
+    textureDesc.viewFormatCount = 0;
+    textureDesc.viewFormats = nullptr;
+
+    sceneRenderTexture = device.CreateTexture(&textureDesc);
+    if (!sceneRenderTexture) {
+        std::cerr << "Failed to create scene render texture" << std::endl;
+        return false;
+    }
+
+    wgpu::TextureViewDescriptor viewDesc = {};
+    viewDesc.format = textureDesc.format;
+    viewDesc.dimension = wgpu::TextureViewDimension::e2D;
+    viewDesc.baseMipLevel = 0;
+    viewDesc.mipLevelCount = 1;
+    viewDesc.baseArrayLayer = 0;
+    viewDesc.arrayLayerCount = 1;
+
+    sceneRenderTextureView = sceneRenderTexture.CreateView(&viewDesc);
+    if (!sceneRenderTextureView) {
+        std::cerr << "Failed to create scene render texture view" << std::endl;
+        return false;
+    }
+
+    std::cout << "✅ Scene render target created (" << sceneTextureWidth << "x" << sceneTextureHeight << ")" << std::endl;
+    return true;
+}
+
+void Application::renderToTexture() {
+    if (!sceneRenderTextureView) {
+        return;
+    }
+
+    wgpu::CommandEncoderDescriptor encoderDesc = {};
+    wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
+
+    wgpu::RenderPassColorAttachment colorAttachment = {};
+    colorAttachment.view = sceneRenderTextureView;
+    colorAttachment.resolveTarget = nullptr;
+    colorAttachment.loadOp = wgpu::LoadOp::Clear;
+    colorAttachment.storeOp = wgpu::StoreOp::Store;
+    colorAttachment.clearValue = {0.2, 0.3, 0.3, 1.0}; // Same clear color as main render
+
+    wgpu::RenderPassDescriptor renderPassDesc = {};
+    renderPassDesc.colorAttachmentCount = 1;
+    renderPassDesc.colorAttachments = &colorAttachment;
+
+    wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
+
+    // Render only the 3D scene to the texture (no GUI)
+    if (scene) {
+        scene->render(renderPass);
+    }
+
+    renderPass.End();
+
+    wgpu::CommandBufferDescriptor cmdBufferDesc = {};
+    wgpu::CommandBuffer commands = encoder.Finish(&cmdBufferDesc);
+    device.GetQueue().Submit(1, &commands);
+}
+
 void Application::render() {
+    // First render the 3D scene to our offscreen texture
+    renderToTexture();
+
+    // Then render the main surface with GUI
     wgpu::SurfaceTexture surfaceTexture;
     surface.GetCurrentTexture(&surfaceTexture);
 
@@ -82,7 +158,7 @@ void Application::render() {
     colorAttachment.resolveTarget = nullptr;
     colorAttachment.loadOp = wgpu::LoadOp::Clear;
     colorAttachment.storeOp = wgpu::StoreOp::Store;
-    colorAttachment.clearValue = {0.2, 0.3, 0.3, 1.0};
+    colorAttachment.clearValue = {0.1, 0.1, 0.1, 1.0}; // Darker background for GUI
 
     wgpu::RenderPassDescriptor renderPassDesc = {};
     renderPassDesc.colorAttachmentCount = 1;
@@ -90,11 +166,7 @@ void Application::render() {
 
     wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
 
-    if (scene) {
-        scene->render(renderPass);
-    }
-
-    // Render GUI
+    // Prepare and render GUI (including Scene Viewport showing the 3D texture)
     if (guiManager && guiManager->isInitialized()) {
         guiManager->newFrame();
         guiManager->render(renderPass);

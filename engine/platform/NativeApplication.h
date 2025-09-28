@@ -12,6 +12,7 @@ private:
     
     static void errorCallback(int error, const char* description);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
 public:
     bool initPlatform() override;
@@ -19,6 +20,7 @@ public:
     void handleEvents() override;
     void cleanup() override;
     GLFWwindow* getWindow() override { return window; }
+    void onWindowResize(int width, int height);
     
     // Static method to check if GLFW is still initialized
     static bool isGLFWInitialized() { return s_glfwInitialized; }
