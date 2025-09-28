@@ -53,11 +53,8 @@ extern/dawn/third_party/build/
 extern/dawn/build/
 extern/dawn/out/
 
-# Misc
-*.orig
-*.rej
-*.sublime-workspace
-*.sublime-project
-*.idea/
-*.iml
-*.ipynb_checkpoints/
+# Chrome Debug Profiles
+.chrome-debug-*/
+.chrome-debug-viewer/
+.chrome-debug-fluid/
+.chrome-debug-wasm/
