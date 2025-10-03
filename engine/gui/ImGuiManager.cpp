@@ -1,5 +1,6 @@
 #include "ImGuiManager.h"
 #include "../core/Application.h"
+#include "../core/RenderSystem.h"
 #include <imgui.h>
 #include <imgui_internal.h>  // Required for DockBuilder API
 #include <iostream>
@@ -141,24 +142,34 @@ bool ImGuiManager::initializeForWeb(wgpu::Device& device, wgpu::TextureFormat sw
 
 void ImGuiManager::shutdown() {
     if (!m_initialized) {
+        std::cout << "[ImGui] Already shutdown, skipping..." << std::endl;
         return;
     }
+
+    std::cout << "[ImGui] Starting shutdown..." << std::endl;
 
 #ifdef __EMSCRIPTEN__
     // For web, minimal shutdown
     ImGui::DestroyContext();
 #else
+    // Shutdown in reverse order of initialization
+    // IMPORTANT: Must shutdown backends BEFORE destroying context
+    
+    // 1. First shutdown GLFW backend (must be called before DestroyContext)
+    std::cout << "[ImGui] Shutting down GLFW backend..." << std::endl;
+    ImGui_ImplGlfw_Shutdown();
+    
+    // 2. Then shutdown WebGPU backend
+    std::cout << "[ImGui] Shutting down WebGPU backend..." << std::endl;
     ImGui_ImplWGPU_Shutdown();
-    // Check if GLFW is still initialized before calling ImGui_ImplGlfw_Shutdown
-    // This prevents the "GLFW library is not initialized" error during cleanup
-    if (NativeApplication::isGLFWInitialized()) {
-        ImGui_ImplGlfw_Shutdown();
-    }
+    
+    // 3. Finally destroy ImGui context
+    std::cout << "[ImGui] Destroying ImGui context..." << std::endl;
     ImGui::DestroyContext();
 #endif
 
     m_initialized = false;
-    std::cout << "[SHUTDOWN] ImGui shutdown complete" << std::endl;
+    std::cout << "[ImGui] Shutdown complete ✅" << std::endl;
 }
 
 void ImGuiManager::newFrame() {
@@ -945,52 +956,61 @@ void ImGuiManager::showSceneViewport() {
     // Get available region for rendering
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
+    // Support both old Application and new RenderSystem
+    wgpu::TextureView sceneTextureView = nullptr;
+    
+#ifndef __EMSCRIPTEN__
+    if (m_renderSystem) {
+        sceneTextureView = m_renderSystem->getSceneTextureView();
+    } else if (m_application) {
+        sceneTextureView = m_application->getSceneTextureView();
+    }
+#else
+    // Web doesn't use separate render texture
     if (m_application) {
-        // Get the 3D scene texture from the application
-        wgpu::TextureView sceneTextureView = m_application->getSceneTextureView();
+        sceneTextureView = m_application->getSceneTextureView();
+    }
+#endif
+    
+    if (sceneTextureView) {
 
-        if (sceneTextureView) {
-            // Create or update texture ID for ImGui
-            if (!m_sceneTextureID) {
-                // Create texture binding for ImGui WebGPU backend
-                m_sceneTextureID = (void*)sceneTextureView.Get();
-            }
-
-            // Use the entire available space for the 3D scene
-            ImVec2 displaySize = viewportPanelSize;
-
-            // Display the actual 3D scene texture using ImGui::Image
-            if (m_sceneTextureID) {
-                // Use ImGui::Image to display the WebGPU texture (fills entire window)
-                ImGui::Image(m_sceneTextureID, displaySize);
-            } else {
-                // Fallback if texture ID creation failed
-                ImDrawList* draw_list = ImGui::GetWindowDrawList();
-                ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
-
-                draw_list->AddRectFilled(canvas_pos,
-                                        ImVec2(canvas_pos.x + displaySize.x, canvas_pos.y + displaySize.y),
-                                        IM_COL32(120, 50, 50, 255)); // Reddish to indicate problem
-
-                draw_list->AddRect(canvas_pos,
-                                  ImVec2(canvas_pos.x + displaySize.x, canvas_pos.y + displaySize.y),
-                                  IM_COL32(150, 150, 150, 255), 0.0f, 0, 2.0f);
-
-                ImVec2 text_pos = ImVec2(canvas_pos.x + displaySize.x * 0.5f - 80,
-                                        canvas_pos.y + displaySize.y * 0.5f);
-                draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), "Texture Binding Failed");
-
-                ImGui::SetCursorScreenPos(ImVec2(canvas_pos.x, canvas_pos.y + displaySize.y + 8));
-                ImGui::Dummy(ImVec2(displaySize.x, 1.0f));
-            }
-
-        } else {
-            ImGui::Text("[ERROR] No scene texture available");
-            ImGui::Text("Waiting for render target initialization...");
+        // Create or update texture ID for ImGui
+        if (!m_sceneTextureID) {
+            // Create texture binding for ImGui WebGPU backend
+            m_sceneTextureID = (void*)sceneTextureView.Get();
         }
+
+        // Use the entire available space for the 3D scene
+        ImVec2 displaySize = viewportPanelSize;
+
+        // Display the actual 3D scene texture using ImGui::Image
+        if (m_sceneTextureID) {
+            // Use ImGui::Image to display the WebGPU texture (fills entire window)
+            ImGui::Image(m_sceneTextureID, displaySize);
+        } else {
+            // Fallback if texture ID creation failed
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
+
+            draw_list->AddRectFilled(canvas_pos,
+                                    ImVec2(canvas_pos.x + displaySize.x, canvas_pos.y + displaySize.y),
+                                    IM_COL32(120, 50, 50, 255)); // Reddish to indicate problem
+
+            draw_list->AddRect(canvas_pos,
+                              ImVec2(canvas_pos.x + displaySize.x, canvas_pos.y + displaySize.y),
+                              IM_COL32(150, 150, 150, 255), 0.0f, 0, 2.0f);
+
+            ImVec2 text_pos = ImVec2(canvas_pos.x + displaySize.x * 0.5f - 80,
+                                    canvas_pos.y + displaySize.y * 0.5f);
+            draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), "Texture Binding Failed");
+
+            ImGui::SetCursorScreenPos(ImVec2(canvas_pos.x, canvas_pos.y + displaySize.y + 8));
+            ImGui::Dummy(ImVec2(displaySize.x, 1.0f));
+        }
+
     } else {
-        ImGui::Text("[ERROR] No application reference");
-        ImGui::Text("ImGui manager not properly connected to application");
+        ImGui::Text("[ERROR] No scene texture available");
+        ImGui::Text("Waiting for render target initialization...");
     }
 
     ImGui::End();

@@ -38,6 +38,7 @@ public:
     // Projection parameters
     void setPerspective(float fov, float aspect, float near, float far);
     void setAspectRatio(float aspect);
+    void setFOV(float fovDegrees); // Set FOV in degrees
 
     // Getters
     const Vec3& getPosition() const { return position; }

@@ -45,6 +45,11 @@ void Camera::setAspectRatio(float aspect) {
     projDirty = true;
 }
 
+void Camera::setFOV(float fovDegrees) {
+    fov = fovDegrees * M_PI / 180.0f;
+    projDirty = true;
+}
+
 const Mat4& Camera::getViewMatrix() const {
     if (viewDirty) {
         updateViewMatrix();

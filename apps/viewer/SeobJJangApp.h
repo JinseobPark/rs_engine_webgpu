@@ -1,21 +1,36 @@
 #pragma once
 
-#ifdef __EMSCRIPTEN__
-    #include "engine/platform/WebApplication.h"
-    using BaseApp = rs_engine::WebApplication;
-#else
-    #include "engine/platform/NativeApplication.h"
-    using BaseApp = rs_engine::NativeApplication;
-#endif
+#include "engine/core/Engine.h"
+#include <iostream>
 
-class SeobJJangApp : public BaseApp {
+/**
+ * @brief SeobJJang Viewer Application
+ * 
+ * Demonstrates PERFECT encapsulation following Architecture Philosophy:
+ * - ✅ App ONLY knows Engine class
+ * - ✅ NO system types or headers
+ * - ✅ NO manual system addition
+ * - ✅ Engine handles all system management
+ * 
+ * This app shows:
+ * - Automatic system initialization by Engine
+ * - Scene setup through Engine interface
+ * - Camera control through Engine interface
+ * - Physics control through Engine interface
+ * - Main loop using Engine::shouldClose()
+ */
+class SeobJJangApp {
+private:
+    rs_engine::Engine engine;  // ✅ Only dependency
+
 public:
     SeobJJangApp();
     ~SeobJJangApp();
 
-    bool onInit() override;
+    bool init();
+    void run();
+    void shutdown();
 
-    void update(float deltaTime) override;
-
-    void draw() override;
+private:
+    void setupScene();
 };

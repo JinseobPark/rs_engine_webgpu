@@ -8,8 +8,9 @@
 #endif
 
 namespace rs_engine {
-// Forward declaration
+// Forward declarations
 class Application;
+class RenderSystem;
 
 namespace gui {
 
@@ -49,12 +50,16 @@ public:
 
     // Set application reference for accessing render targets
     void setApplication(Application* app) { m_application = app; }
+    
+    // Set render system reference for new system architecture
+    void setRenderSystem(RenderSystem* renderSys) { m_renderSystem = renderSys; }
 
 private:
     bool m_initialized = false;
     GLFWwindow* m_window = nullptr;
     wgpu::Device m_device;
     Application* m_application = nullptr;
+    RenderSystem* m_renderSystem = nullptr;
 
     // Debug state
     bool m_showDebugWindow = true;
