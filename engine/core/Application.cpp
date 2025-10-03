@@ -130,6 +130,47 @@ void Application::renderToTexture() {
 }
 
 void Application::render() {
+#ifdef __EMSCRIPTEN__
+    // ===== WEB: Direct scene rendering (no ImGui, use HTML UI) =====
+    wgpu::SurfaceTexture surfaceTexture;
+    surface.GetCurrentTexture(&surfaceTexture);
+
+    if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::Success) {
+        return;
+    }
+
+    wgpu::TextureView view = surfaceTexture.texture.CreateView();
+
+    wgpu::CommandEncoderDescriptor encoderDesc = {};
+    wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
+
+    wgpu::RenderPassColorAttachment colorAttachment = {};
+    colorAttachment.view = view;
+    colorAttachment.resolveTarget = nullptr;
+    colorAttachment.loadOp = wgpu::LoadOp::Clear;
+    colorAttachment.storeOp = wgpu::StoreOp::Store;
+    colorAttachment.clearValue = {0.1, 0.1, 0.1, 1.0}; // Dark background
+
+    wgpu::RenderPassDescriptor renderPassDesc = {};
+    renderPassDesc.colorAttachmentCount = 1;
+    renderPassDesc.colorAttachments = &colorAttachment;
+
+    wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
+
+    // ✅ Web: Render scene directly to canvas (no ImGui)
+    if (scene) {
+        scene->render(renderPass);
+    }
+
+    renderPass.End();
+
+    wgpu::CommandBufferDescriptor cmdBufferDesc = {};
+    wgpu::CommandBuffer commands = encoder.Finish(&cmdBufferDesc);
+    device.GetQueue().Submit(1, &commands);
+    
+    // Web doesn't need Present() - browser handles it automatically
+#else
+    // ===== NATIVE: Render to texture for ImGui viewport, then render GUI =====
     // First render the 3D scene to our offscreen texture
     renderToTexture();
 
@@ -137,16 +178,10 @@ void Application::render() {
     wgpu::SurfaceTexture surfaceTexture;
     surface.GetCurrentTexture(&surfaceTexture);
 
-#ifdef __EMSCRIPTEN__
-    if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::Success) {
-        return;
-    }
-#else
     if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal &&
         surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal) {
         return;
     }
-#endif
 
     wgpu::TextureView view = surfaceTexture.texture.CreateView();
 
@@ -166,7 +201,7 @@ void Application::render() {
 
     wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
 
-    // Prepare and render GUI (including Scene Viewport showing the 3D texture)
+    // Native: Render GUI (including Scene Viewport showing the 3D texture)
     if (guiManager && guiManager->isInitialized()) {
         guiManager->newFrame();
         guiManager->render(renderPass);
@@ -178,7 +213,6 @@ void Application::render() {
     wgpu::CommandBuffer commands = encoder.Finish(&cmdBufferDesc);
     device.GetQueue().Submit(1, &commands);
 
-#ifndef __EMSCRIPTEN__
     surface.Present();
 #endif
 }
