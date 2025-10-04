@@ -1,7 +1,7 @@
 #pragma once
 
-#include "IEngineSystem.h"
-#include "../physics/PhysicsWorld.h"
+#include "../../core/IEngineSystem.h"
+#include "../../physics/PhysicsWorld.h"
 #include <memory>
 
 namespace rs_engine {

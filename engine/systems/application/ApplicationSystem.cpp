@@ -1,5 +1,6 @@
 #include "ApplicationSystem.h"
-#include "Engine.h"
+#include "../input/InputSystem.h"
+#include "../../core/Engine.h"
 #include <iostream>
 #include <cassert>
 
@@ -228,6 +229,9 @@ bool ApplicationSystem::initPlatform() {
 
     // Set callbacks
     glfwSetKeyCallback(window, keyCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetCursorPosCallback(window, cursorPosCallback);
+    glfwSetScrollCallback(window, scrollCallback);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     std::cout << "✅ Native window created" << std::endl;
@@ -321,8 +325,50 @@ void ApplicationSystem::errorCallback(int error, const char* description) {
 }
 
 void ApplicationSystem::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    auto* app = static_cast<ApplicationSystem*>(glfwGetWindowUserPointer(window));
+    if (!app || !app->engine) return;
+    
+    // Forward to InputSystem if available
+    auto* inputSystem = app->engine->getSystem<InputSystem>();
+    if (inputSystem) {
+        bool pressed = (action == GLFW_PRESS || action == GLFW_REPEAT);
+        inputSystem->updateKeyState(key, pressed);
+    }
+    
+    // Handle ESC to close (fallback if InputSystem not present)
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+}
+
+void ApplicationSystem::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    auto* app = static_cast<ApplicationSystem*>(glfwGetWindowUserPointer(window));
+    if (!app || !app->engine) return;
+    
+    auto* inputSystem = app->engine->getSystem<InputSystem>();
+    if (inputSystem) {
+        bool pressed = (action == GLFW_PRESS);
+        inputSystem->updateMouseButtonState(button, pressed);
+    }
+}
+
+void ApplicationSystem::cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+    auto* app = static_cast<ApplicationSystem*>(glfwGetWindowUserPointer(window));
+    if (!app || !app->engine) return;
+    
+    auto* inputSystem = app->engine->getSystem<InputSystem>();
+    if (inputSystem) {
+        inputSystem->updateMousePosition(xpos, ypos);
+    }
+}
+
+void ApplicationSystem::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    auto* app = static_cast<ApplicationSystem*>(glfwGetWindowUserPointer(window));
+    if (!app || !app->engine) return;
+    
+    auto* inputSystem = app->engine->getSystem<InputSystem>();
+    if (inputSystem) {
+        inputSystem->updateScroll(xoffset, yoffset);
     }
 }
 

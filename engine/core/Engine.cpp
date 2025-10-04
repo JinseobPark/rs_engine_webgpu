@@ -1,7 +1,9 @@
 #include "Engine.h"
-#include "ApplicationSystem.h"
-#include "RenderSystem.h"
-#include "PhysicsSystem.h"
+#include "../systems/application/ApplicationSystem.h"
+#include "../systems/input/InputSystem.h"
+#include "../systems/rendering/RenderSystem.h"
+#include "../systems/physics/PhysicsSystem.h"
+#include "../systems/resource/ResourceSystem.h"
 #include <iostream>
 
 namespace rs_engine {
@@ -34,6 +36,7 @@ bool Engine::initialize() {
     if (systems.empty()) {
         std::cout << "🔧 Adding default engine systems..." << std::endl;
         addSystem<ApplicationSystem>();
+        addSystem<InputSystem>();
         addSystem<PhysicsSystem>();
         addSystem<RenderSystem>();
         std::cout << "✅ Default systems added" << std::endl;
@@ -221,6 +224,67 @@ void Engine::clearScene() {
     }
 }
 
+// ========== Input Control ==========
+
+bool Engine::isKeyPressed(int keyCode) const {
+    auto* inputSystem = const_cast<Engine*>(this)->getSystem<InputSystem>();
+    return inputSystem ? inputSystem->isKeyPressed(static_cast<KeyCode>(keyCode)) : false;
+}
+
+bool Engine::isKeyHeld(int keyCode) const {
+    auto* inputSystem = const_cast<Engine*>(this)->getSystem<InputSystem>();
+    return inputSystem ? inputSystem->isKeyHeld(static_cast<KeyCode>(keyCode)) : false;
+}
+
+bool Engine::isKeyDown(int keyCode) const {
+    auto* inputSystem = const_cast<Engine*>(this)->getSystem<InputSystem>();
+    return inputSystem ? inputSystem->isKeyDown(static_cast<KeyCode>(keyCode)) : false;
+}
+
+bool Engine::isMouseButtonPressed(int button) const {
+    auto* inputSystem = const_cast<Engine*>(this)->getSystem<InputSystem>();
+    return inputSystem ? inputSystem->isMouseButtonPressed(static_cast<MouseButton>(button)) : false;
+}
+
+bool Engine::isMouseButtonDown(int button) const {
+    auto* inputSystem = const_cast<Engine*>(this)->getSystem<InputSystem>();
+    return inputSystem ? inputSystem->isMouseButtonDown(static_cast<MouseButton>(button)) : false;
+}
+
+void Engine::getMousePosition(double& x, double& y) const {
+    auto* inputSystem = const_cast<Engine*>(this)->getSystem<InputSystem>();
+    if (inputSystem) {
+        inputSystem->getMousePosition(x, y);
+    } else {
+        x = 0.0;
+        y = 0.0;
+    }
+}
+
+void Engine::getMouseDelta(double& dx, double& dy) const {
+    auto* inputSystem = const_cast<Engine*>(this)->getSystem<InputSystem>();
+    if (inputSystem) {
+        inputSystem->getMouseDelta(dx, dy);
+    } else {
+        dx = 0.0;
+        dy = 0.0;
+    }
+}
+
+void Engine::lockCursor(bool lock) {
+    auto* inputSystem = getSystem<InputSystem>();
+    if (inputSystem) {
+        inputSystem->lockCursor(lock);
+    }
+}
+
+void Engine::showCursor(bool show) {
+    auto* inputSystem = getSystem<InputSystem>();
+    if (inputSystem) {
+        inputSystem->showCursor(show);
+    }
+}
+
 // ========== Camera Control ==========
 
 void Engine::setCameraPosition(const Vec3& position) {
@@ -278,6 +342,119 @@ void Engine::setPhysicsTimeScale(float scale) {
     auto* physicsSystem = getSystem<PhysicsSystem>();
     if (physicsSystem) {
         physicsSystem->setTimeScale(scale);
+    }
+}
+
+// ========== Resource Control ==========
+
+uint64_t Engine::createCubeMesh(const std::string& name, float size) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        return resourceSystem->createCubeMesh(name, size);
+    }
+    return 0; // INVALID_RESOURCE_HANDLE
+}
+
+uint64_t Engine::createSphereMesh(const std::string& name, float radius, int segments) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        return resourceSystem->createSphereMesh(name, radius, segments);
+    }
+    return 0;
+}
+
+uint64_t Engine::createPlaneMesh(const std::string& name, float width, float height) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        return resourceSystem->createPlaneMesh(name, width, height);
+    }
+    return 0;
+}
+
+uint64_t Engine::createSolidColorTexture(const std::string& name,
+                                         uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        return resourceSystem->createSolidColorTexture(name, r, g, b, a);
+    }
+    return 0;
+}
+
+uint64_t Engine::createCheckerboardTexture(const std::string& name,
+                                           uint32_t size, uint32_t checkSize) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        return resourceSystem->createCheckerboardTexture(name, size, checkSize);
+    }
+    return 0;
+}
+
+uint64_t Engine::loadModel(const std::string& name, const std::string& filepath) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        return resourceSystem->loadModel(name, filepath);
+    }
+    return 0;
+}
+
+uint64_t Engine::loadTexture(const std::string& name, const std::string& filepath) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        return resourceSystem->loadTexture(name, filepath);
+    }
+    return 0;
+}
+
+void Engine::removeResource(const std::string& name) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        resourceSystem->removeResource(name);
+    }
+}
+
+void Engine::removeResource(uint64_t handle) {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        resourceSystem->removeResource(handle);
+    }
+}
+
+void Engine::clearAllResources() {
+    auto* resourceSystem = getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        resourceSystem->clearAllResources();
+    }
+}
+
+bool Engine::hasResource(const std::string& name) const {
+    auto* resourceSystem = const_cast<Engine*>(this)->getSystem<ResourceSystem>();
+    return resourceSystem ? resourceSystem->hasResource(name) : false;
+}
+
+bool Engine::hasResource(uint64_t handle) const {
+    auto* resourceSystem = const_cast<Engine*>(this)->getSystem<ResourceSystem>();
+    return resourceSystem ? resourceSystem->hasResource(handle) : false;
+}
+
+size_t Engine::getResourceCount() const {
+    auto* resourceSystem = const_cast<Engine*>(this)->getSystem<ResourceSystem>();
+    return resourceSystem ? resourceSystem->getResourceCount() : 0;
+}
+
+size_t Engine::getResourceMemoryUsed() const {
+    auto* resourceSystem = const_cast<Engine*>(this)->getSystem<ResourceSystem>();
+    return resourceSystem ? resourceSystem->getTotalMemoryUsed() : 0;
+}
+
+size_t Engine::getResourceGPUMemoryUsed() const {
+    auto* resourceSystem = const_cast<Engine*>(this)->getSystem<ResourceSystem>();
+    return resourceSystem ? resourceSystem->getGPUMemoryUsed() : 0;
+}
+
+void Engine::printResourceStatistics() const {
+    auto* resourceSystem = const_cast<Engine*>(this)->getSystem<ResourceSystem>();
+    if (resourceSystem) {
+        resourceSystem->printStatistics();
     }
 }
 

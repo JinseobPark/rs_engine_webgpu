@@ -1,6 +1,7 @@
 #include "RenderSystem.h"
-#include "ApplicationSystem.h"
-#include "Engine.h"
+#include "../../core/Engine.h"
+#include "../application/ApplicationSystem.h"
+#include "../input/InputSystem.h"
 #include <iostream>
 #include <cassert>
 
@@ -20,9 +21,20 @@ bool RenderSystem::initialize(Engine* engineRef) {
         return false;
     }
 
+    // Get InputSystem (optional, for camera control)
+    inputSystem = engine->getSystem<InputSystem>();
+    if (!inputSystem) {
+        std::cout << "⚠️  InputSystem not found - camera control will be disabled" << std::endl;
+    }
+
     if (!initializeScene()) {
         std::cerr << "❌ Failed to initialize scene" << std::endl;
         return false;
+    }
+    
+    // Initialize camera controller if InputSystem is available
+    if (scene && inputSystem) {
+        scene->initializeCameraController(inputSystem);
     }
 
 #ifndef __EMSCRIPTEN__
@@ -88,11 +100,6 @@ bool RenderSystem::initializeScene() {
         std::cerr << "❌ Failed to initialize scene" << std::endl;
         return false;
     }
-
-    // Add default cubes
-    scene->addCube(Vec3(2, 0, 0));
-    scene->addCube(Vec3(0, 3, 0));
-    scene->addCube(Vec3(-2, 0, 0));
 
     std::cout << "✅ Scene initialized successfully!" << std::endl;
     return true;

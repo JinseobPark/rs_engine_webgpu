@@ -1,6 +1,5 @@
 #include "ImGuiManager.h"
-#include "../core/Application.h"
-#include "../core/RenderSystem.h"
+#include "../systems/rendering/RenderSystem.h"
 #include <imgui.h>
 #include <imgui_internal.h>  // Required for DockBuilder API
 #include <iostream>
@@ -11,7 +10,6 @@
 #else
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_wgpu.h>
-#include "../platform/NativeApplication.h"
 #endif
 
 namespace rs_engine {
@@ -956,21 +954,15 @@ void ImGuiManager::showSceneViewport() {
     // Get available region for rendering
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
-    // Support both old Application and new RenderSystem
+    // Get scene texture from RenderSystem
     wgpu::TextureView sceneTextureView = nullptr;
     
 #ifndef __EMSCRIPTEN__
     if (m_renderSystem) {
         sceneTextureView = m_renderSystem->getSceneTextureView();
-    } else if (m_application) {
-        sceneTextureView = m_application->getSceneTextureView();
-    }
-#else
-    // Web doesn't use separate render texture
-    if (m_application) {
-        sceneTextureView = m_application->getSceneTextureView();
     }
 #endif
+    // Web doesn't use separate render texture
     
     if (sceneTextureView) {
 

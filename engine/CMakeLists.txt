@@ -45,13 +45,31 @@ endif()
 # Create the engine library
 if(EMSCRIPTEN)
     add_library(rs_engine_webgpu STATIC
-        core/Application.cpp
-        platform/WebApplication.cpp
+        # Core infrastructure
+        core/Engine.cpp
+        
+        # Systems
+        systems/application/ApplicationSystem.cpp
+        systems/input/InputSystem.cpp
+        systems/rendering/RenderSystem.cpp
+        systems/physics/PhysicsSystem.cpp
+        systems/resource/ResourceSystem.cpp
+        
+        # Rendering
         rendering/ShaderManager.cpp
-        rendering/CubeRenderer.cpp
         rendering/scene/Camera.cpp
         rendering/scene/Scene.cpp
+        
+        # GUI
         gui/ImGuiManager.cpp
+        
+        # Resources
+        resource/ResourceManager.cpp
+        resource/model/Mesh.cpp
+        resource/model/Model.cpp
+        resource/texture/Texture.cpp
+        
+        # ImGui
         ${IMGUI_SOURCES}
         ${IMGUI_BACKEND_SOURCES}
     )
@@ -63,13 +81,31 @@ if(EMSCRIPTEN)
     target_include_directories(rs_engine_webgpu PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 else()
     add_library(rs_engine_webgpu STATIC
-        core/Application.cpp
-        platform/NativeApplication.cpp
+        # Core infrastructure
+        core/Engine.cpp
+        
+        # Systems
+        systems/application/ApplicationSystem.cpp
+        systems/input/InputSystem.cpp
+        systems/rendering/RenderSystem.cpp
+        systems/physics/PhysicsSystem.cpp
+        systems/resource/ResourceSystem.cpp
+        
+        # Rendering
         rendering/ShaderManager.cpp
-        rendering/CubeRenderer.cpp
         rendering/scene/Camera.cpp
         rendering/scene/Scene.cpp
+        
+        # GUI
         gui/ImGuiManager.cpp
+        
+        # Resources
+        resource/ResourceManager.cpp
+        resource/model/Mesh.cpp
+        resource/model/Model.cpp
+        resource/texture/Texture.cpp
+        
+        # ImGui
         ${IMGUI_SOURCES}
         ${IMGUI_BACKEND_SOURCES}
     )

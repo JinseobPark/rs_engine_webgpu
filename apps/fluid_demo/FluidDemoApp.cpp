@@ -1,47 +1,77 @@
 #include "FluidDemoApp.h"
+#include "engine/core/Config.h"
 
-FluidDemoApp::FluidDemoApp() {}
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
-FluidDemoApp::~FluidDemoApp() {
-    // Explicitly cleanup physics objects before base class destruction
-    // This ensures proper cleanup order and prevents GLFW errors
-    physicsWorld.reset();
-    fluidSim.reset();
+FluidDemoApp::FluidDemoApp() {
+    std::cout << "🌊 Creating Fluid Demo App..." << std::endl;
 }
 
-bool FluidDemoApp::onInit()
-{
-    BaseApp::onInit();
+FluidDemoApp::~FluidDemoApp() {
+    shutdown();
+}
+
+bool FluidDemoApp::init() {
+    // Initialize engine (systems added automatically)
+    if (!engine.initialize()) {
+        std::cerr << "❌ Failed to initialize engine" << std::endl;
+        return false;
+    }
+
+    // Start engine
+    engine.start();
+
     std::cout << "🌊 Fluid Demo initialized!" << std::endl;
     
-    // 브레이크포인트 테스트를 위한 디버거 호출
-    #ifdef __EMSCRIPTEN__
-    EM_ASM({
-        console.log("🛑 FluidDemoApp onInit reached - debugger should break here");
-        debugger; // JavaScript 레벨에서 브레이크
-    });
-    #endif
-    
+    // Platform limits
+    auto limits = rs_engine::EngineConfig::getLimits();
     std::cout << "Platform limits: " << std::endl;
-    std::cout << "  Max particles: " << platformLimits.maxParticles << std::endl;
-    std::cout << "  Advanced features: " << (platformLimits.enableAdvancedFeatures ? "ON" : "OFF") << std::endl;
+    std::cout << "  Max particles: " << limits.maxParticles << std::endl;
+    std::cout << "  Advanced features: " << (limits.enableAdvancedFeatures ? "ON" : "OFF") << std::endl;
 
-    // Initialize physics world
-    physicsWorld = std::make_unique<rs_engine::PhysicsWorld>(&device);
-
+    // Setup scene through Engine interface
+    setupScene();
+    
+    std::cout << "Scene setup complete\n" << std::endl;
     return true;
 }
 
-void FluidDemoApp::update(const float deltaTime)
-{
-    if (physicsWorld) {
-            physicsWorld->update(deltaTime);
-            physicsWorld->adjustQualityForPerformance(deltaTime);
-        }
-    BaseApp::update(deltaTime);
+void FluidDemoApp::setupScene() {
+    // Setup camera for fluid viewing
+    engine.setCameraPosition(rs_engine::Vec3(0.0f, 5.0f, 10.0f));
+    engine.setCameraTarget(rs_engine::Vec3(0.0f, 0.0f, 0.0f));
+    engine.setCameraFOV(60.0f);
+    
+    // Set physics quality
+    engine.setPhysicsQuality(1.0f);
+    
+    std::cout << "   📷 Camera positioned for fluid demo" << std::endl;
+    std::cout << "   ⚙️  Physics quality set to 1.0" << std::endl;
 }
 
-void FluidDemoApp::draw()
-{
-    BaseApp::draw();
+void FluidDemoApp::run() {
+#ifdef __EMSCRIPTEN__
+    // Web: Set up main loop callback
+    emscripten_set_main_loop_arg(
+        [](void* userData) {
+            FluidDemoApp* app = static_cast<FluidDemoApp*>(userData);
+            app->engine.update();
+        },
+        this, 0, 1);
+#else
+    // Native: Direct loop
+    std::cout << "🔄 Starting Fluid Demo main loop...\n" << std::endl;
+    while (!engine.shouldClose()) {
+        engine.update();
+    }
+    std::cout << "\n🛑 Fluid Demo ended" << std::endl;
+#endif
+}
+
+void FluidDemoApp::shutdown() {
+    std::cout << "🧹 Cleaning up Fluid Demo..." << std::endl;
+    engine.shutdown();
+    std::cout << "✅ Cleanup complete" << std::endl;
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "IEngineSystem.h"
-#include "../rendering/scene/Scene.h"
-#include "../gui/ImGuiManager.h"
+#include "../../core/IEngineSystem.h"
+#include "../../rendering/scene/Scene.h"
+#include "../../gui/ImGuiManager.h"
 #include <memory>
 
 #ifdef __EMSCRIPTEN__
@@ -13,8 +13,9 @@
 
 namespace rs_engine {
 
-// Forward declaration
+// Forward declarations
 class ApplicationSystem;
+class InputSystem;
 
 /**
  * @brief Render System - Scene rendering and GUI
@@ -33,6 +34,7 @@ class ApplicationSystem;
 class RenderSystem : public IEngineSystem {
 private:
     ApplicationSystem* appSystem = nullptr;
+    InputSystem* inputSystem = nullptr;
     
     std::unique_ptr<rendering::Scene> scene;
     

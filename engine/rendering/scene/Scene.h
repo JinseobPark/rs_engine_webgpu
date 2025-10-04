@@ -4,6 +4,7 @@
 #include "../../core/math/Vec3.h"
 #include "Camera.h"
 #include "../ShaderManager.h"
+#include "../../systems/input/CameraController.h"
 #include <memory>
 #include <vector>
 
@@ -16,7 +17,7 @@
 
 namespace rs_engine {
 
-// Reuse the Mat4 structure and CubeUniforms from CubeRenderer
+// Uniforms for cube rendering
 struct CubeUniforms {
     Mat4 viewProj;
     Mat4 model;
@@ -56,6 +57,7 @@ private:
     wgpu::Device* device;
     std::unique_ptr<ShaderManager> shaderManager;
     std::unique_ptr<Camera> camera;
+    std::unique_ptr<CameraController> cameraController;
     std::vector<std::unique_ptr<CubeObject>> cubeObjects;
 
     // Rendering resources for cubes
@@ -85,6 +87,11 @@ public:
     // Camera management
     Camera* getCamera() { return camera.get(); }
     void setCamera(std::unique_ptr<Camera> cam) { camera = std::move(cam); }
+    
+    // Camera controller management
+    CameraController* getCameraController() { return cameraController.get(); }
+    void initializeCameraController(InputSystem* inputSystem);
+    void updateCameraController(float deltaTime);
 
     // Object management
     void addCube(const Vec3& position = Vec3(0, 0, 0), 

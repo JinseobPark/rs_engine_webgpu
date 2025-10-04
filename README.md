@@ -1,8 +1,29 @@
-# 🎮 RS Engine WebGPU
+# RS Engine WebGPU
 
-**Physics Simulation Engine** - 웹과 네이티브에서 동일한 코드로 실행되는 고성능 유체/천 시뮬레이션 엔진
+**Cross-Platform Game Engine** - 웹과 네이티브에서 동일한 코드로 실행되는 고성능 물리 시뮬레이션 엔진
 
-## 🚀 빠른 시작
+> **New!** Phase 4 완료 - 모듈 구조 개선 및 Legacy 코드 제거!
+> 
+> [System Architecture 문서](docs/Engine_System_Architecture.md) | [Phase 4 완료 리포트](docs/Phase4_Module_Refactoring_Complete.md)
+
+## 현재 아키텍처
+
+```
+Engine (Facade Pattern)
+    │
+    ├─> systems/application/ApplicationSystem [-100] - Window, WebGPU
+    ├─> systems/input/InputSystem             [-50]  - Keyboard, Mouse
+    ├─> systems/physics/PhysicsSystem         [50]   - Physics simulation
+    └─> systems/rendering/RenderSystem        [100]  - Scene, Camera, GUI
+```
+
+**Phase 1**: System Interface 완료  
+**Phase 2**: System Integration 완료 (Application, Render, Physics)  
+**Phase 3**: InputSystem 완료 - 키보드/마우스 입력, 이벤트 구조 개선 ✅  
+**Phase 4**: 모듈 구조 개선 - System 폴더 분리, Legacy 코드 제거 ✅  
+**Phase 5**: System 문서화 또는 Fluid Simulation 고도화 (계획)
+
+## 빠른 시작
 
 ### 유체 시뮬레이션 데모
 
@@ -51,9 +72,9 @@ npm run build:dawn:win
 npm run native:win
 ```
 
-> 📋 **Windows 사용자**: 자세한 설정 가이드는 [WINDOWS_SETUP.md](./WINDOWS_SETUP.md)를 참조하세요.
+> **Windows 사용자**: 자세한 설정 가이드는 [WINDOWS_SETUP.md](./WINDOWS_SETUP.md)를 참조하세요.
 
-## 📦 사용 가능한 명령어
+## 사용 가능한 명령어
 
 ### 물리 시뮬레이션
 
@@ -69,14 +90,14 @@ npm run native:win
 
 | 명령어 | 설명 |
 |--------|------|
-| `npm run dev` | 🔥 기본 개발 모드 (삼각형 뷰어) |
-| `npm run build` | 🔨 웹 버전 빌드 (viewer) |
-| `npm run preview` | 🌍 빌드된 파일 서버 실행 (포트 3377) |
-| `npm run native` | 🖥️ 네이티브 빌드 & 실행 |
-| `npm run clean` | 🧹 모든 빌드 파일 정리 |
-| `npm run build:fast` | ⚡ 빠른 빌드 (재빌드용) |
-| `npm run copy-html` | 📄 HTML 파일 빠른 업데이트 |
-| `npm run kill-server` | 🛑 개발 서버 종료 (포트 3377, 3378) |
+| `npm run dev` | 기본 개발 모드 (삼각형 뷰어) |
+| `npm run build` | 웹 버전 빌드 (viewer) |
+| `npm run preview` | 빌드된 파일 서버 실행 (포트 3377) |
+| `npm run native` | 네이티브 빌드 & 실행 |
+| `npm run clean` | 모든 빌드 파일 정리 |
+| `npm run build:fast` | 빠른 빌드 (재빌드용) |
+| `npm run copy-html` | HTML 파일 빠른 업데이트 |
+| `npm run kill-server` | 개발 서버 종료 (포트 3377, 3378) |
 
 ### Windows 전용
 
@@ -87,7 +108,7 @@ npm run native:win
 | `npm run native:windows` | 🖥️ 네이티브 빌드 & 실행 (PowerShell) |
 | `npm run native:win` | 🖥️ 네이티브 빌드 & 실행 (Batch) |
 
-## 🏗️ 프로젝트 구조 (95% 코드 공유 아키텍처)
+## 프로젝트 구조 (95% 코드 공유 아키텍처)
 
 ```
 rs_engine_webgpu/
@@ -126,7 +147,7 @@ rs_engine_webgpu/
 └── result/                          # 결과 이미지
 ```
 
-## 🛠️ 개발 가이드
+## 개발 가이드
 
 ### 아키텍처 원칙
 
@@ -188,7 +209,7 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
 }
 ```
 
-## 📋 요구사항
+## 요구사항
 
 ### 공통
 

@@ -1,18 +1,14 @@
 #pragma once
 
-#ifdef __EMSCRIPTEN__
-    #include "engine/platform/WebApplication.h"
-    using BaseApp = rs_engine::WebApplication;
-#else
-    #include "engine/platform/NativeApplication.h"
-    using BaseApp = rs_engine::NativeApplication;
-#endif
-
+#include "engine/core/Engine.h"
 #include "engine/physics/PhysicsWorld.h"
 #include "engine/physics/fluid/SPHSimulation.h"
+#include <memory>
+#include <iostream>
 
-class FluidDemoApp : public BaseApp {
+class FluidDemoApp {
 private:
+    rs_engine::Engine engine;
     std::unique_ptr<rs_engine::PhysicsWorld> physicsWorld;
     std::unique_ptr<rs_engine::SPHSimulation> fluidSim;
 
@@ -20,9 +16,10 @@ public:
     FluidDemoApp();
     ~FluidDemoApp();
 
-    bool onInit() override;
-
-    void update(float deltaTime) override;
-
-    void draw() override;
+    bool init();
+    void run();
+    void shutdown();
+    
+private:
+    void setupScene();
 };

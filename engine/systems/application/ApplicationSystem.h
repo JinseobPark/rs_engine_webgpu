@@ -1,7 +1,7 @@
 #pragma once
 
-#include "IEngineSystem.h"
-#include "../core/Config.h"
+#include "../../core/IEngineSystem.h"
+#include "../../core/Config.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -89,6 +89,9 @@ public:
     // GLFW callbacks
     static void errorCallback(int error, const char* description);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+    static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 #endif
 };

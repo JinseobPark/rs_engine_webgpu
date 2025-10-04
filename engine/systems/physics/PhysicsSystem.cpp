@@ -1,6 +1,6 @@
 #include "PhysicsSystem.h"
-#include "ApplicationSystem.h"
-#include "Engine.h"
+#include "../../core/Engine.h"
+#include "../application/ApplicationSystem.h"
 #include <iostream>
 
 namespace rs_engine {

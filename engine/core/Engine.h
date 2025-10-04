@@ -5,11 +5,15 @@
 #include <algorithm>
 #include <chrono>
 #include <string>
+#include <cstdint>
 #include "IEngineSystem.h"
 #include "Config.h"
 #include "../core/math/Vec3.h"
 
 namespace rs_engine {
+
+// Forward declarations
+class ResourceSystem;
 
 /**
  * @brief Main engine coordinator - manages all subsystems
@@ -229,6 +233,53 @@ public:
      */
     void setCameraFOV(float fov);
 
+    // ========== Input Control ==========
+    
+    /**
+     * @brief Check if key was just pressed this frame
+     */
+    bool isKeyPressed(int keyCode) const;
+    
+    /**
+     * @brief Check if key is currently held down
+     */
+    bool isKeyHeld(int keyCode) const;
+    
+    /**
+     * @brief Check if key is down (pressed or held)
+     */
+    bool isKeyDown(int keyCode) const;
+    
+    /**
+     * @brief Check if mouse button was just pressed this frame
+     */
+    bool isMouseButtonPressed(int button) const;
+    
+    /**
+     * @brief Check if mouse button is down
+     */
+    bool isMouseButtonDown(int button) const;
+    
+    /**
+     * @brief Get mouse position
+     */
+    void getMousePosition(double& x, double& y) const;
+    
+    /**
+     * @brief Get mouse movement delta
+     */
+    void getMouseDelta(double& dx, double& dy) const;
+    
+    /**
+     * @brief Lock cursor (for FPS camera)
+     */
+    void lockCursor(bool lock);
+    
+    /**
+     * @brief Show or hide cursor
+     */
+    void showCursor(bool show);
+
     // ========== Physics Control ==========
     
     /**
@@ -254,6 +305,60 @@ public:
      * @param scale Time scale factor (1.0 = normal speed)
      */
     void setPhysicsTimeScale(float scale);
+
+    // ========== Resource Control ==========
+    
+    /**
+     * @brief Create procedural mesh resources
+     * @param name Resource name
+     * @param size/radius/width/height Mesh dimensions
+     * @return Resource handle
+     */
+    uint64_t createCubeMesh(const std::string& name = "Cube", float size = 1.0f);
+    uint64_t createSphereMesh(const std::string& name = "Sphere", 
+                              float radius = 1.0f, int segments = 32);
+    uint64_t createPlaneMesh(const std::string& name = "Plane",
+                             float width = 1.0f, float height = 1.0f);
+    
+    /**
+     * @brief Create procedural texture resources
+     * @param name Resource name
+     * @return Resource handle
+     */
+    uint64_t createSolidColorTexture(const std::string& name,
+                                     uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
+    uint64_t createCheckerboardTexture(const std::string& name,
+                                       uint32_t size = 256, uint32_t checkSize = 32);
+    
+    /**
+     * @brief Load resources from files
+     * @param name Resource name
+     * @param filepath Path to resource file
+     * @return Resource handle
+     */
+    uint64_t loadModel(const std::string& name, const std::string& filepath);
+    uint64_t loadTexture(const std::string& name, const std::string& filepath);
+    
+    /**
+     * @brief Remove resources
+     */
+    void removeResource(const std::string& name);
+    void removeResource(uint64_t handle);
+    void clearAllResources();
+    
+    /**
+     * @brief Check if resource exists
+     */
+    bool hasResource(const std::string& name) const;
+    bool hasResource(uint64_t handle) const;
+    
+    /**
+     * @brief Get resource statistics
+     */
+    size_t getResourceCount() const;
+    size_t getResourceMemoryUsed() const;
+    size_t getResourceGPUMemoryUsed() const;
+    void printResourceStatistics() const;
 
 private:
     /**
