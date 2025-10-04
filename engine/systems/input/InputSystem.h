@@ -1,10 +1,21 @@
 #pragma once
 
 #include "../../core/IEngineSystem.h"
+#include "CameraController.h"
 #include <unordered_map>
 #include <array>
+#include <memory>
+
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/html5.h>
+#endif
 
 namespace rs_engine {
+
+// Forward declarations
+namespace rendering {
+    class Camera;
+}
 
 /**
  * @brief Input state for keys and mouse buttons
@@ -70,6 +81,9 @@ enum class MouseButton {
  */
 class InputSystem : public IEngineSystem {
 private:
+    // Camera controller
+    std::unique_ptr<CameraController> cameraController;
+    
     // Keyboard state
     std::array<InputState, static_cast<size_t>(KeyCode::KeyCount)> keyStates;
     std::array<InputState, static_cast<size_t>(KeyCode::KeyCount)> prevKeyStates;
@@ -196,6 +210,19 @@ public:
      */
     bool isCursorVisible() const { return cursorVisible; }
 
+    // ========== Camera Controller ==========
+    
+    /**
+     * @brief Initialize camera controller with a camera
+     * @param camera Camera to control (owned by Scene)
+     */
+    void initializeCameraController(rendering::Camera* camera);
+    
+    /**
+     * @brief Get camera controller
+     */
+    CameraController* getCameraController() { return cameraController.get(); }
+
     // ========== Internal Update (called by platform) ==========
     
     /**
@@ -237,6 +264,18 @@ private:
      * @brief Convert platform mouse button to MouseButton
      */
     MouseButton platformButtonToMouseButton(int platformButton) const;
+
+#ifdef __EMSCRIPTEN__
+    // Web event handlers
+    void setupWebEventHandlers();
+    
+    static EM_BOOL onMouseDown(int eventType, const EmscriptenMouseEvent* event, void* userData);
+    static EM_BOOL onMouseUp(int eventType, const EmscriptenMouseEvent* event, void* userData);
+    static EM_BOOL onMouseMove(int eventType, const EmscriptenMouseEvent* event, void* userData);
+    static EM_BOOL onWheel(int eventType, const EmscriptenWheelEvent* event, void* userData);
+    static EM_BOOL onKeyDown(int eventType, const EmscriptenKeyboardEvent* event, void* userData);
+    static EM_BOOL onKeyUp(int eventType, const EmscriptenKeyboardEvent* event, void* userData);
+#endif
 };
 
 } // namespace rs_engine

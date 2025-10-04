@@ -51,6 +51,7 @@ if(EMSCRIPTEN)
         # Systems
         systems/application/ApplicationSystem.cpp
         systems/input/InputSystem.cpp
+        systems/input/CameraController.cpp
         systems/rendering/RenderSystem.cpp
         systems/physics/PhysicsSystem.cpp
         systems/resource/ResourceSystem.cpp
@@ -87,6 +88,7 @@ else()
         # Systems
         systems/application/ApplicationSystem.cpp
         systems/input/InputSystem.cpp
+        systems/input/CameraController.cpp
         systems/rendering/RenderSystem.cpp
         systems/physics/PhysicsSystem.cpp
         systems/resource/ResourceSystem.cpp

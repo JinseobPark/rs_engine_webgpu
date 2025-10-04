@@ -32,9 +32,9 @@ bool RenderSystem::initialize(Engine* engineRef) {
         return false;
     }
     
-    // Initialize camera controller if InputSystem is available
-    if (scene && inputSystem) {
-        scene->initializeCameraController(inputSystem);
+    // Initialize camera controller in InputSystem
+    if (scene && inputSystem && scene->getCamera()) {
+        inputSystem->initializeCameraController(scene->getCamera());
     }
 
 #ifndef __EMSCRIPTEN__

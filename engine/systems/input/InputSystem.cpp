@@ -1,9 +1,12 @@
 #include "InputSystem.h"
 #include "../../core/Engine.h"
 #include "../application/ApplicationSystem.h"
+#include "../../rendering/scene/Camera.h"
 #include <iostream>
 
-#ifndef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/html5.h>
+#else
     #include <GLFW/glfw3.h>
 #endif
 
@@ -41,7 +44,14 @@ void InputSystem::onUpdate(float deltaTime) {
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     
-    // Reset scroll delta (scroll is per-frame)
+    // Update camera controller BEFORE resetting scroll
+    // (camera controller needs to read scroll delta)
+    if (cameraController) {
+        cameraController->update(deltaTime);
+    }
+    
+    // Reset scroll delta AFTER camera controller uses it
+    // (scroll is per-frame, only valid for one frame)
     scrollDeltaX = 0.0;
     scrollDeltaY = 0.0;
 }
@@ -337,5 +347,130 @@ MouseButton InputSystem::platformButtonToMouseButton(int platformButton) const {
     return static_cast<MouseButton>(platformButton);
 #endif
 }
+
+// ========== Camera Controller ==========
+
+void InputSystem::initializeCameraController(rendering::Camera* camera) {
+    if (!camera) {
+        std::cerr << "[InputSystem] Cannot initialize camera controller: camera is null" << std::endl;
+        return;
+    }
+    
+    if (!cameraController) {
+        cameraController = std::make_unique<CameraController>();
+    }
+    
+    cameraController->init(this, camera);
+    cameraController->setMode(CameraController::Mode::Trackball);
+    cameraController->setTarget(Vec3(0.0f, 0.0f, 0.0f));
+    
+    std::cout << "[InputSystem] Camera controller initialized (Trackball mode)" << std::endl;
+    
+#ifdef __EMSCRIPTEN__
+    // Setup Web event handlers
+    setupWebEventHandlers();
+#endif
+}
+
+#ifdef __EMSCRIPTEN__
+// ========== Web Event Handlers ==========
+
+namespace {
+    /**
+     * @brief Convert HTML5 mouse button code to our MouseButton enum
+     * 
+     * HTML5 Standard:     Our MouseButton enum:
+     * 0 = Left Button     0 = Left
+     * 1 = Middle Button   1 = Right
+     * 2 = Right Button    2 = Middle
+     * 
+     * We need to swap Middle(1) and Right(2) to match our enum
+     */
+    inline int convertHTML5Button(int html5Button) {
+        switch (html5Button) {
+            case 0: return 0;  // Left → Left (no change)
+            case 1: return 2;  // HTML5 Middle(1) → Our Middle(2)
+            case 2: return 1;  // HTML5 Right(2) → Our Right(1)
+            default: return html5Button;
+        }
+    }
+}
+
+EM_BOOL InputSystem::onMouseDown(int eventType, const EmscriptenMouseEvent* event, void* userData) {
+    auto* inputSystem = static_cast<InputSystem*>(userData);
+    if (!inputSystem) return EM_FALSE;
+    
+    // Convert HTML5 button code to our MouseButton enum
+    int button = convertHTML5Button(event->button);
+    inputSystem->updateMouseButtonState(button, true);
+    
+    return EM_TRUE;
+}
+
+EM_BOOL InputSystem::onMouseUp(int eventType, const EmscriptenMouseEvent* event, void* userData) {
+    auto* inputSystem = static_cast<InputSystem*>(userData);
+    if (!inputSystem) return EM_FALSE;
+    
+    // Convert HTML5 button code to our MouseButton enum
+    int button = convertHTML5Button(event->button);
+    inputSystem->updateMouseButtonState(button, false);
+    
+    return EM_TRUE;
+}
+
+EM_BOOL InputSystem::onMouseMove(int eventType, const EmscriptenMouseEvent* event, void* userData) {
+    auto* inputSystem = static_cast<InputSystem*>(userData);
+    if (!inputSystem) return EM_FALSE;
+    
+    inputSystem->updateMousePosition(event->targetX, event->targetY);
+    
+    return EM_TRUE;
+}
+
+EM_BOOL InputSystem::onWheel(int eventType, const EmscriptenWheelEvent* event, void* userData) {
+    auto* inputSystem = static_cast<InputSystem*>(userData);
+    if (!inputSystem) return EM_FALSE;
+    
+    inputSystem->updateScroll(event->deltaX, event->deltaY);
+    
+    return EM_TRUE;
+}
+
+EM_BOOL InputSystem::onKeyDown(int eventType, const EmscriptenKeyboardEvent* event, void* userData) {
+    auto* inputSystem = static_cast<InputSystem*>(userData);
+    if (!inputSystem) return EM_FALSE;
+    
+    // Convert HTML5 key code to our KeyCode enum
+    // This is simplified - you may need more mappings
+    int keyCode = 0; // TODO: Map event->key or event->keyCode to KeyCode
+    inputSystem->updateKeyState(keyCode, true);
+    
+    return EM_TRUE;
+}
+
+EM_BOOL InputSystem::onKeyUp(int eventType, const EmscriptenKeyboardEvent* event, void* userData) {
+    auto* inputSystem = static_cast<InputSystem*>(userData);
+    if (!inputSystem) return EM_FALSE;
+    
+    int keyCode = 0; // TODO: Map event->key or event->keyCode to KeyCode
+    inputSystem->updateKeyState(keyCode, false);
+    
+    return EM_TRUE;
+}
+
+void InputSystem::setupWebEventHandlers() {
+    const char* target = "#canvas";
+    
+    emscripten_set_mousedown_callback(target, this, true, onMouseDown);
+    emscripten_set_mouseup_callback(target, this, true, onMouseUp);
+    emscripten_set_mousemove_callback(target, this, true, onMouseMove);
+    emscripten_set_wheel_callback(target, this, true, onWheel);
+    emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, this, true, onKeyDown);
+    emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, this, true, onKeyUp);
+    
+    std::cout << "[InputSystem] Web event handlers registered" << std::endl;
+}
+
+#endif
 
 } // namespace rs_engine

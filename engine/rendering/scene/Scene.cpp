@@ -30,9 +30,6 @@ Scene::Scene(wgpu::Device* dev) : device(dev) {
     
     // Set up default camera position
     camera->lookAt(Vec3(0, 0, 20), Vec3(0, 0, 0), Vec3(0, 1, 0));
-    
-    // Create camera controller (will be initialized later with InputSystem)
-    cameraController = std::make_unique<CameraController>();
 }
 
 bool Scene::initialize() {
@@ -51,11 +48,6 @@ void Scene::update(float deltaTime) {
     // Update all cube objects
     for (auto& cube : cubeObjects) {
         cube->update(deltaTime);
-    }
-    
-    // Update camera controller (if initialized)
-    if (cameraController) {
-        updateCameraController(deltaTime);
     }
 }
 
@@ -92,27 +84,7 @@ void Scene::removeAllCubes() {
     std::cout << "🧹 Removed all cubes from scene" << std::endl;
 }
 
-void Scene::initializeCameraController(InputSystem* inputSystem) {
-    if (cameraController && camera && inputSystem) {
-        cameraController->init(inputSystem, camera.get());
-        
-        // Set default mode to Trackball
-        cameraController->setMode(CameraController::Mode::Trackball);
-        
-        // Set target point to scene center
-        cameraController->setTargetPoint(Vec3(0.0f, 0.0f, 0.0f));
-        
-        std::cout << "✅ Camera controller initialized with Trackball mode" << std::endl;
-    } else {
-        std::cerr << "⚠️  Failed to initialize camera controller: missing dependencies" << std::endl;
-    }
-}
 
-void Scene::updateCameraController(float deltaTime) {
-    if (cameraController) {
-        cameraController->update(deltaTime);
-    }
-}
 
 bool Scene::createCubeRenderingResources() {
     if (!createCubeBuffers()) {
