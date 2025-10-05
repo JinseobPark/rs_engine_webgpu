@@ -864,12 +864,31 @@ void ImGuiManager::showViewportControls() {
     ImGui::Text("3D Scene Controls");
     ImGui::Separator();
 
+    // Get InputSystem through RenderSystem (needed for all controls)
+    InputSystem* inputSystem = nullptr;
+    if (m_renderSystem) {
+        inputSystem = m_renderSystem->getInputSystem();
+    }
+
     // Compact viewport controls
-    if (ImGui::Button("[FOCUS]")) {}
+    if (ImGui::Button("[FOCUS]")) {
+        // TODO: Focus on selected object
+    }
     ImGui::SameLine();
-    if (ImGui::Button("[SHOT]")) {}
+    if (ImGui::Button("[SHOT]")) {
+        // TODO: Take screenshot
+    }
     ImGui::SameLine();
-    if (ImGui::Button("[RESET]")) {}
+    if (ImGui::Button("[RESET]")) {
+        // Reset camera to initial position
+        if (inputSystem) {
+            auto* controller = inputSystem->getCameraController();
+            if (controller) {
+                controller->reset();
+                std::cout << "[ImGui] Camera reset to initial position" << std::endl;
+            }
+        }
+    }
     
     ImGui::Separator();
     
@@ -878,12 +897,6 @@ void ImGuiManager::showViewportControls() {
     static int cameraMode = 0; // 0=Trackball, 1=Orbit, 2=FirstPerson, 3=Free
     static bool initialized = false;
     const char* cameraModes[] = { "Trackball", "Orbit", "First Person", "Free" };
-    
-    // Get InputSystem through RenderSystem
-    InputSystem* inputSystem = nullptr;
-    if (m_renderSystem) {
-        inputSystem = m_renderSystem->getInputSystem();
-    }
     
     // Initialize from camera controller on first frame
     if (!initialized && inputSystem) {
@@ -938,10 +951,43 @@ void ImGuiManager::showViewportControls() {
     static float fov = 60.0f;
     static float nearPlane = 0.1f;
     static float farPlane = 100.0f;
+    static bool cameraParamsInitialized = false;
     
-    ImGui::SliderFloat("FOV", &fov, 30.0f, 120.0f, "%.0f deg");
-    ImGui::DragFloat("Near", &nearPlane, 0.01f, 0.01f, 10.0f, "%.2f");
-    ImGui::DragFloat("Far", &farPlane, 1.0f, 1.0f, 1000.0f, "%.0f");
+    // Sync with actual camera on first frame
+    if (!cameraParamsInitialized && m_renderSystem) {
+        auto* camera = m_renderSystem->getCamera();
+        if (camera) {
+            fov = camera->getFOV();
+            nearPlane = camera->getNearPlane();
+            farPlane = camera->getFarPlane();
+            cameraParamsInitialized = true;
+        }
+    }
+    
+    if (ImGui::SliderFloat("FOV", &fov, 30.0f, 120.0f, "%.0f deg")) {
+        if (m_renderSystem) {
+            auto* camera = m_renderSystem->getCamera();
+            if (camera) {
+                camera->setFOV(fov);
+            }
+        }
+    }
+    if (ImGui::DragFloat("Near", &nearPlane, 0.01f, 0.01f, 10.0f, "%.2f")) {
+        if (m_renderSystem && nearPlane < farPlane) {
+            auto* camera = m_renderSystem->getCamera();
+            if (camera) {
+                camera->setPerspective(camera->getFOVRadians(), camera->getAspectRatio(), nearPlane, farPlane);
+            }
+        }
+    }
+    if (ImGui::DragFloat("Far", &farPlane, 1.0f, 1.0f, 1000.0f, "%.0f")) {
+        if (m_renderSystem && farPlane > nearPlane) {
+            auto* camera = m_renderSystem->getCamera();
+            if (camera) {
+                camera->setPerspective(camera->getFOVRadians(), camera->getAspectRatio(), nearPlane, farPlane);
+            }
+        }
+    }
     
     ImGui::Separator();
     

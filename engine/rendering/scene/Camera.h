@@ -44,6 +44,11 @@ public:
     const Vec3& getPosition() const { return position; }
     const Vec3& getTarget() const { return target; }
     const Vec3& getUp() const { return up; }
+    float getFOV() const { return fov * 180.0f / M_PI; } // Return FOV in degrees
+    float getFOVRadians() const { return fov; } // Return FOV in radians
+    float getAspectRatio() const { return aspect; }
+    float getNearPlane() const { return nearPlane; }
+    float getFarPlane() const { return farPlane; }
     
     const Mat4& getViewMatrix() const;
     const Mat4& getProjectionMatrix() const;

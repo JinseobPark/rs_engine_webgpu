@@ -53,6 +53,12 @@ private:
     // FirstPerson/Free parameters (Quaternion-based)
     Quat firstPersonOrientation;    // FPS camera orientation
     
+    // Initial state for reset
+    Vec3 initialPosition;           // Initial camera position
+    Vec3 initialTarget;             // Initial target position
+    float initialDistance;          // Initial distance
+    Quat initialOrientation;        // Initial orientation
+    
     // Control parameters
     float panSpeed = 1.0f;
     float zoomSpeed = 1.0f;
@@ -92,6 +98,9 @@ public:
     
     void setFirstPersonMoveSpeed(float speed) { firstPersonMoveSpeed = speed; }
     float getFirstPersonMoveSpeed() const { return firstPersonMoveSpeed; }
+    
+    // Reset camera to initial state
+    void reset();
 
 private:
     void updateTrackball(float deltaTime);

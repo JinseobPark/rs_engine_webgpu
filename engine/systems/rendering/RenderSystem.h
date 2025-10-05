@@ -64,6 +64,9 @@ public:
     // Scene access
     rendering::Scene* getScene() { return scene.get(); }
     
+    // Camera access (for GUI)
+    rendering::Camera* getCamera() { return scene ? scene->getCamera() : nullptr; }
+    
     // Input system access (for GUI to control camera)
     InputSystem* getInputSystem() { return inputSystem; }
     

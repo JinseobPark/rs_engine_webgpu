@@ -30,6 +30,12 @@ void CameraController::init(InputSystem* inputSys, rendering::Camera* cam) {
             firstPersonOrientation = Quat::identity();
         }
     }
+    
+    // Save initial state for reset
+    initialPosition = camera ? camera->getPosition() : Vec3(0.0f, 5.0f, 10.0f);
+    initialTarget = target;
+    initialDistance = distance;
+    initialOrientation = orientation;
 }
 
 void CameraController::update(float deltaTime) {
@@ -70,6 +76,20 @@ void CameraController::setTarget(const Vec3& newTarget) {
 
 void CameraController::setDistance(float dist) {
     distance = std::max(minDistance, std::min(maxDistance, dist));
+}
+
+void CameraController::reset() {
+    // Restore initial state
+    target = initialTarget;
+    distance = initialDistance;
+    orientation = initialOrientation;
+    firstPersonOrientation = initialOrientation;
+    
+    // Update camera position
+    if (camera) {
+        camera->setPosition(initialPosition);
+        camera->lookAt(initialPosition, target, Vec3(0.0f, 1.0f, 0.0f));
+    }
 }
 
 void CameraController::updateTrackball(float deltaTime) {
