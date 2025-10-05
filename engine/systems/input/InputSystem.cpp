@@ -122,7 +122,7 @@ void InputSystem::getMousePosition(double& x, double& y) const {
 
 void InputSystem::getMouseDelta(double& dx, double& dy) const {
     dx = mouseDeltaX;
-    dy = mouseDeltaY;
+    dy = -mouseDeltaY;
 }
 
 void InputSystem::getScrollDelta(double& dx, double& dy) const {

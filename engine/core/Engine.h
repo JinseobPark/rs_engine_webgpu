@@ -193,14 +193,29 @@ public:
     // ========== Scene Control ==========
     
     /**
-     * @brief Add object to scene
-     * @param name Object name
-     * @param position World position
-     * @param scale Object scale
+     * @brief Create an empty scene object
+     * @param name Unique object name
+     * @return true if successful, false if name already exists
      */
-    void addSceneObject(const std::string& name, 
-                       const Vec3& position,
-                       const Vec3& scale = Vec3(1.0f, 1.0f, 1.0f));
+    bool createSceneObject(const std::string& name);
+    
+    /**
+     * @brief Add a mesh to an existing scene object
+     * @param objectName Name of the scene object
+     * @param meshHandle Resource handle from createCubeMesh, etc.
+     * @return true if successful
+     */
+    bool addMeshToSceneObject(const std::string& objectName, uint64_t meshHandle);
+    
+    /**
+     * @brief Set object position
+     */
+    void setObjectPosition(const std::string& name, const Vec3& position);
+    
+    /**
+     * @brief Set object scale
+     */
+    void setObjectScale(const std::string& name, const Vec3& scale);
     
     /**
      * @brief Remove object from scene

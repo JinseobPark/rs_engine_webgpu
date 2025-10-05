@@ -22,7 +22,7 @@ class ApplicationSystem;
  * - Resource management: 100% shared
  * - File loading: Web uses virtual FS, Native uses real FS
  * 
- * Priority: -50 (before Physics/Render, after Application)
+ * Priority: -75 (before Input/Physics/Render, after Application)
  */
 class ResourceSystem : public IEngineSystem {
 private:
@@ -43,7 +43,7 @@ public:
     void onShutdown() override;
     
     const char* getName() const override { return "Resource"; }
-    int getPriority() const override { return -50; }
+    int getPriority() const override { return -75; }
     
     void setEnabled(bool value) override { enabled = value; }
     bool isEnabled() const override { return enabled; }

@@ -2,6 +2,7 @@
 #include "../../core/Engine.h"
 #include "../application/ApplicationSystem.h"
 #include "../input/InputSystem.h"
+#include "../resource/ResourceSystem.h"
 #include <iostream>
 #include <cassert>
 
@@ -94,7 +95,15 @@ void RenderSystem::onShutdown() {
 bool RenderSystem::initializeScene() {
     std::cout << "[INFO] Initializing Scene..." << std::endl;
 
-    scene = std::make_unique<rendering::Scene>(&appSystem->getDevice());
+    // Get ResourceSystem
+    auto* resourceSystem = engine->getSystem<ResourceSystem>();
+    if (!resourceSystem) {
+        std::cerr << "[ERROR] ResourceSystem not found" << std::endl;
+        return false;
+    }
+
+    scene = std::make_unique<rendering::Scene>(&appSystem->getDevice(), 
+                                                resourceSystem->getResourceManager());
 
     if (!scene->initialize()) {
         std::cerr << "[ERROR] Failed to initialize scene" << std::endl;

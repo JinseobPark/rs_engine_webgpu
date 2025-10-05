@@ -3,9 +3,12 @@
 #include "../../core/math/Mat4.h"
 #include "../../core/math/Vec3.h"
 #include "Camera.h"
+#include "SceneObject.h"
 #include "../ShaderManager.h"
+#include "../../resource/ResourceManager.h"
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 #ifdef __EMSCRIPTEN__
     #include <webgpu/webgpu.h>
@@ -16,8 +19,8 @@
 
 namespace rs_engine {
 
-// Uniforms for cube rendering
-struct CubeUniforms {
+// Uniforms for rendering
+struct ObjectUniforms {
     Mat4 viewProj;
     Mat4 model;
     float time;
@@ -26,56 +29,29 @@ struct CubeUniforms {
 
 namespace rendering {
 
-// Simple cube object that can be rendered in the scene
-class CubeObject {
-private:
-    Vec3 position;
-    Vec3 rotation;
-    Vec3 scale;
-    float animationTime;
-
-public:
-    CubeObject(const Vec3& pos = Vec3(0, 0, 0), const Vec3& rot = Vec3(0, 0, 0), const Vec3& scale = Vec3(1, 1, 1))
-        : position(pos), rotation(rot), scale(scale), animationTime(0.0f) {}
-
-    void setPosition(const Vec3& pos) { position = pos; }
-    void setRotation(const Vec3& rot) { rotation = rot; }
-    void setScale(const Vec3& sc) { scale = sc; }
-    
-    const Vec3& getPosition() const { return position; }
-    const Vec3& getRotation() const { return rotation; }
-    const Vec3& getScale() const { return scale; }
-
-    void update(float deltaTime) { animationTime += deltaTime; }
-    float getAnimationTime() const { return animationTime; }
-    Mat4 getModelMatrix() const;
-};
-
 class Scene {
 private:
     wgpu::Device* device;
+    resource::ResourceManager* resourceManager;
     std::unique_ptr<ShaderManager> shaderManager;
     std::unique_ptr<Camera> camera;
-    std::vector<std::unique_ptr<CubeObject>> cubeObjects;
+    
+    // Scene objects (name -> object)
+    std::unordered_map<std::string, std::unique_ptr<SceneObject>> sceneObjects;
 
-    // Rendering resources for cubes
-    wgpu::RenderPipeline cubePipeline;
-    wgpu::Buffer cubeVertexBuffer;
-    wgpu::Buffer cubeIndexBuffer;
-    wgpu::Buffer cubeUniformBuffer;
-    wgpu::BindGroup cubeBindGroup;
-    wgpu::BindGroupLayout cubeBindGroupLayout;
+    // Rendering resources (TEMPORARY - will be replaced with proper renderer)
+    wgpu::RenderPipeline renderPipeline;
+    wgpu::Buffer uniformBuffer;
+    wgpu::BindGroup bindGroup;
+    wgpu::BindGroupLayout bindGroupLayout;
 
     // Dynamic uniform buffer management
-    static constexpr uint32_t MAX_CUBES = 100;
+    static constexpr uint32_t MAX_OBJECTS = 100;
     static constexpr uint32_t UNIFORM_ALIGNMENT = 256; // WebGPU alignment requirement
     uint32_t alignedUniformSize;
 
-    static constexpr uint32_t CUBE_VERTEX_COUNT = 8;
-    static constexpr uint32_t CUBE_INDEX_COUNT = 36;
-
 public:
-    Scene(wgpu::Device* dev);
+    Scene(wgpu::Device* dev, resource::ResourceManager* resMgr);
     ~Scene() = default;
 
     bool initialize();
@@ -86,22 +62,53 @@ public:
     Camera* getCamera() { return camera.get(); }
     void setCamera(std::unique_ptr<Camera> cam) { camera = std::move(cam); }
 
-    // Object management
-    void addCube(const Vec3& position = Vec3(0, 0, 0), 
-                 const Vec3& rotation = Vec3(0, 0, 0), 
-                 const Vec3& scale = Vec3(1, 1, 1));
-    void removeAllCubes();
-    size_t getCubeCount() const { return cubeObjects.size(); }
+    // ========== Object Management ==========
+    
+    /**
+     * @brief Create an empty scene object
+     * @param name Unique object name
+     * @return Pointer to created object (or nullptr if name exists)
+     */
+    SceneObject* createObject(const std::string& name);
+    
+    /**
+     * @brief Add a mesh to an existing object
+     * @param objectName Name of the object
+     * @param meshHandle Resource handle of the mesh (from ResourceManager)
+     * @return true if successful
+     */
+    bool addMeshToObject(const std::string& objectName, resource::ResourceHandle meshHandle);
+    
+    /**
+     * @brief Get scene object by name
+     */
+    SceneObject* getObject(const std::string& name);
+    
+    /**
+     * @brief Remove object from scene
+     */
+    void removeObject(const std::string& name);
+    
+    /**
+     * @brief Remove all objects
+     */
+    void clearAllObjects();
+    
+    /**
+     * @brief Get object count
+     */
+    size_t getObjectCount() const { return sceneObjects.size(); }
 
 private:
-    bool createCubeRenderingResources();
-    bool createCubeBuffers();
-    bool createCubeBindGroupLayout();
-    bool createCubePipeline();
-    void updateCubeUniforms(const CubeObject& cube, size_t cubeIndex);
-
-    static std::array<float, CUBE_VERTEX_COUNT * 3> getCubeVertices();
-    static std::array<uint32_t, CUBE_INDEX_COUNT> getCubeIndices();
+    bool createRenderingResources();
+    bool createUniformBuffer();
+    bool createBindGroupLayout();
+    bool createRenderPipeline();
+    void updateObjectUniforms(const SceneObject& object, size_t objectIndex);
+    
+    void renderObject(wgpu::RenderPassEncoder& renderPass, 
+                     const SceneObject& object, 
+                     size_t objectIndex);
 };
 
 } // namespace rendering

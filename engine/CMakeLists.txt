@@ -60,6 +60,7 @@ if(EMSCRIPTEN)
         rendering/ShaderManager.cpp
         rendering/scene/Camera.cpp
         rendering/scene/Scene.cpp
+        rendering/scene/SceneObject.cpp
         
         # GUI
         gui/ImGuiManager.cpp
@@ -97,6 +98,7 @@ else()
         rendering/ShaderManager.cpp
         rendering/scene/Camera.cpp
         rendering/scene/Scene.cpp
+        rendering/scene/SceneObject.cpp
         
         # GUI
         gui/ImGuiManager.cpp

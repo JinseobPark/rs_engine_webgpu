@@ -134,56 +134,43 @@ Mesh* Mesh::createCube(const std::string& name, float size) {
     
     float half = size * 0.5f;
     
-    // Cube vertices (24 vertices, 4 per face for proper normals)
+    // 8 vertices (cube corners)
+    // Position convention: X = right, Y = up, Z = forward
     std::vector<Vertex> vertices = {
         // Front face (Z+)
-        {{-half, -half,  half}, {0, 0, 1}, {0, 0, 0}, {1, 1, 1}},
-        {{ half, -half,  half}, {0, 0, 1}, {1, 0, 0}, {1, 1, 1}},
-        {{ half,  half,  half}, {0, 0, 1}, {1, 1, 0}, {1, 1, 1}},
-        {{-half,  half,  half}, {0, 0, 1}, {0, 1, 0}, {1, 1, 1}},
+        {{-half, -half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 0: front-bottom-left
+        {{ half, -half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 1: front-bottom-right
+        {{ half,  half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 2: front-top-right
+        {{-half,  half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 3: front-top-left
         
         // Back face (Z-)
-        {{ half, -half, -half}, {0, 0, -1}, {0, 0, 0}, {1, 1, 1}},
-        {{-half, -half, -half}, {0, 0, -1}, {1, 0, 0}, {1, 1, 1}},
-        {{-half,  half, -half}, {0, 0, -1}, {1, 1, 0}, {1, 1, 1}},
-        {{ half,  half, -half}, {0, 0, -1}, {0, 1, 0}, {1, 1, 1}},
-        
-        // Top face (Y+)
-        {{-half,  half,  half}, {0, 1, 0}, {0, 0, 0}, {1, 1, 1}},
-        {{ half,  half,  half}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1}},
-        {{ half,  half, -half}, {0, 1, 0}, {1, 1, 0}, {1, 1, 1}},
-        {{-half,  half, -half}, {0, 1, 0}, {0, 1, 0}, {1, 1, 1}},
-        
-        // Bottom face (Y-)
-        {{-half, -half, -half}, {0, -1, 0}, {0, 0, 0}, {1, 1, 1}},
-        {{ half, -half, -half}, {0, -1, 0}, {1, 0, 0}, {1, 1, 1}},
-        {{ half, -half,  half}, {0, -1, 0}, {1, 1, 0}, {1, 1, 1}},
-        {{-half, -half,  half}, {0, -1, 0}, {0, 1, 0}, {1, 1, 1}},
-        
-        // Right face (X+)
-        {{ half, -half,  half}, {1, 0, 0}, {0, 0, 0}, {1, 1, 1}},
-        {{ half, -half, -half}, {1, 0, 0}, {1, 0, 0}, {1, 1, 1}},
-        {{ half,  half, -half}, {1, 0, 0}, {1, 1, 0}, {1, 1, 1}},
-        {{ half,  half,  half}, {1, 0, 0}, {0, 1, 0}, {1, 1, 1}},
-        
-        // Left face (X-)
-        {{-half, -half, -half}, {-1, 0, 0}, {0, 0, 0}, {1, 1, 1}},
-        {{-half, -half,  half}, {-1, 0, 0}, {1, 0, 0}, {1, 1, 1}},
-        {{-half,  half,  half}, {-1, 0, 0}, {1, 1, 0}, {1, 1, 1}},
-        {{-half,  half, -half}, {-1, 0, 0}, {0, 1, 0}, {1, 1, 1}},
+        {{-half, -half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 4: back-bottom-left
+        {{ half, -half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 5: back-bottom-right
+        {{ half,  half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 6: back-top-right
+        {{-half,  half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 7: back-top-left
     };
     
-    // Cube indices (6 faces * 2 triangles * 3 indices = 36 indices)
-    std::vector<uint32_t> indices;
-    for (uint32_t i = 0; i < 6; ++i) {
-        uint32_t base = i * 4;
-        indices.push_back(base + 0);
-        indices.push_back(base + 1);
-        indices.push_back(base + 2);
-        indices.push_back(base + 0);
-        indices.push_back(base + 2);
-        indices.push_back(base + 3);
-    }
+    // 36 indices (6 faces × 2 triangles × 3 vertices)
+    // All faces wound counter-clockwise when viewed from outside
+    std::vector<uint32_t> indices = {
+        // Front face (Z+): looking at front from outside
+        0, 1, 2,  2, 3, 0,
+        
+        // Back face (Z-): looking at back from outside
+        5, 4, 7,  7, 6, 5,
+        
+        // Left face (X-): looking at left from outside
+        4, 0, 3,  3, 7, 4,
+        
+        // Right face (X+): looking at right from outside
+        1, 5, 6,  6, 2, 1,
+        
+        // Top face (Y+): looking at top from outside
+        3, 2, 6,  6, 7, 3,
+        
+        // Bottom face (Y-): looking at bottom from outside
+        4, 5, 1,  1, 0, 4,
+    };
     
     mesh->setVertices(vertices);
     mesh->setIndices(indices);
@@ -252,9 +239,9 @@ Mesh* Mesh::createPlane(const std::string& name, float width, float height) {
     
     std::vector<Vertex> vertices = {
         {{-halfW, 0, -halfH}, {0, 1, 0}, {0, 0, 0}, {1, 1, 1}},
-        {{ halfW, 0, -halfH}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1}},
-        {{ halfW, 0,  halfH}, {0, 1, 0}, {1, 1, 0}, {1, 1, 1}},
         {{-halfW, 0,  halfH}, {0, 1, 0}, {0, 1, 0}, {1, 1, 1}},
+        {{ halfW, 0,  halfH}, {0, 1, 0}, {1, 1, 0}, {1, 1, 1}},
+        {{ halfW, 0, -halfH}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1}},
     };
     
     std::vector<uint32_t> indices = {

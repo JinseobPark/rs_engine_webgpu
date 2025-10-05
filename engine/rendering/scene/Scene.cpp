@@ -4,20 +4,10 @@
 
 namespace rs_engine {
 
-
 namespace rendering {
 
-Mat4 CubeObject::getModelMatrix() const {
-    // Create transformation matrices using the new Mat4 library
-    Mat4 translationMat = Mat4::translation(position);
-    Mat4 rotationMat = Mat4::rotationY(animationTime);
-    Mat4 scaleMat = Mat4::scale(scale);
-
-    // Combine transformations: translation * rotation * scale
-    return translationMat * rotationMat * scaleMat;
-}
-
-Scene::Scene(wgpu::Device* dev) : device(dev) {
+Scene::Scene(wgpu::Device* dev, resource::ResourceManager* resMgr) 
+    : device(dev), resourceManager(resMgr) {
     shaderManager = std::make_unique<ShaderManager>(device, "shaders/");
     
     // Create default camera
@@ -35,8 +25,7 @@ Scene::Scene(wgpu::Device* dev) : device(dev) {
 bool Scene::initialize() {
     std::cout << "[INFO] Scene::initialize() started..." << std::endl;
 
-    if (!createCubeRenderingResources()) {
-        std::cerr << "[ERROR] Scene: Failed to create cube rendering resources" << std::endl;
+    if (!createRenderingResources()) {
         return false;
     }
 
@@ -45,160 +34,185 @@ bool Scene::initialize() {
 }
 
 void Scene::update(float deltaTime) {
-    // Update all cube objects
-    for (auto& cube : cubeObjects) {
-        cube->update(deltaTime);
+    // Update all scene objects
+    for (auto& [name, object] : sceneObjects) {
+        object->update(deltaTime);
     }
 }
 
 void Scene::render(wgpu::RenderPassEncoder& renderPass) {
-    if (cubeObjects.empty()) {
-        return; // Nothing to render
+    if (sceneObjects.empty()) {
+        return;
     }
 
-    // Set cube pipeline
-    renderPass.SetPipeline(cubePipeline);
-    renderPass.SetVertexBuffer(0, cubeVertexBuffer);
-    renderPass.SetIndexBuffer(cubeIndexBuffer, wgpu::IndexFormat::Uint32);
+    // Set render pipeline
+    renderPass.SetPipeline(renderPipeline);
 
-    // Render each cube with dynamic offset
-    for (size_t i = 0; i < cubeObjects.size() && i < MAX_CUBES; ++i) {
-        updateCubeUniforms(*cubeObjects[i], i);
-
-        // Set bind group with dynamic offset
-        uint32_t offset = static_cast<uint32_t>(i * alignedUniformSize);
-        renderPass.SetBindGroup(0, cubeBindGroup, 1, &offset);
-
-        renderPass.DrawIndexed(CUBE_INDEX_COUNT);
+    // Render each object
+    size_t objectIndex = 0;
+    for (const auto& [name, object] : sceneObjects) {
+        if (objectIndex >= MAX_OBJECTS) break;
+        if (!object->getVisible() || !object->hasModel()) continue;
+        
+        renderObject(renderPass, *object, objectIndex);
+        objectIndex++;
     }
 }
 
-void Scene::addCube(const Vec3& position, const Vec3& rotation, const Vec3& scale) {
-    auto cube = std::make_unique<CubeObject>(position, rotation, scale);
-    cubeObjects.push_back(std::move(cube));
-    std::cout << "[SUCCESS] Added cube to scene. Total cubes: " << cubeObjects.size() << std::endl;
+// ========== Object Management ==========
+
+SceneObject* Scene::createObject(const std::string& name) {
+    // Check if object already exists
+    if (sceneObjects.find(name) != sceneObjects.end()) {
+        std::cerr << "[ERROR] Scene object '" << name << "' already exists" << std::endl;
+        return nullptr;
+    }
+    
+    auto object = std::make_unique<SceneObject>(name);
+    SceneObject* objectPtr = object.get();
+    sceneObjects[name] = std::move(object);
+    
+    std::cout << "[SUCCESS] Created scene object '" << name << "'" << std::endl;
+    return objectPtr;
 }
 
-void Scene::removeAllCubes() {
-    cubeObjects.clear();
-    std::cout << "[INFO] Removed all cubes from scene" << std::endl;
+bool Scene::addMeshToObject(const std::string& objectName, resource::ResourceHandle meshHandle) {
+    auto it = sceneObjects.find(objectName);
+    if (it == sceneObjects.end()) {
+        std::cerr << "[ERROR] Scene object '" << objectName << "' not found" << std::endl;
+        return false;
+    }
+    
+    if (!resourceManager) {
+        std::cerr << "[ERROR] ResourceManager not available" << std::endl;
+        return false;
+    }
+    
+    // Get the mesh from ResourceManager
+    auto mesh = resourceManager->getMesh(meshHandle);
+    if (!mesh) {
+        std::cerr << "[ERROR] Mesh with handle " << meshHandle << " not found" << std::endl;
+        return false;
+    }
+    
+    // Create a model with this mesh
+    auto model = std::make_shared<resource::Model>(objectName + "_Model");
+    model->addMesh(mesh);
+    
+    // Set the model on the object
+    it->second->setModel(model);
+    
+    std::cout << "[SUCCESS] Added mesh to object '" << objectName << "'" << std::endl;
+    return true;
+}
+
+SceneObject* Scene::getObject(const std::string& name) {
+    auto it = sceneObjects.find(name);
+    return (it != sceneObjects.end()) ? it->second.get() : nullptr;
+}
+
+void Scene::removeObject(const std::string& name) {
+    auto it = sceneObjects.find(name);
+    if (it != sceneObjects.end()) {
+        sceneObjects.erase(it);
+        std::cout << "[INFO] Removed object '" << name << "' from scene" << std::endl;
+    }
+}
+
+void Scene::clearAllObjects() {
+    sceneObjects.clear();
+    std::cout << "[INFO] Cleared all objects from scene" << std::endl;
 }
 
 
 
-bool Scene::createCubeRenderingResources() {
-    if (!createCubeBuffers()) {
-        std::cerr << "[ERROR] Scene: createCubeBuffers() failed" << std::endl;
-        return false;
-    }
-    std::cout << "[SUCCESS] Scene: createCubeBuffers() succeeded" << std::endl;
+// ========== Rendering Resource Creation ==========
 
-    if (!createCubeBindGroupLayout()) {
-        std::cerr << "[ERROR] Scene: createCubeBindGroupLayout() failed" << std::endl;
+bool Scene::createRenderingResources() {
+    if (!createUniformBuffer()) {
+        std::cerr << "[ERROR] Scene: createUniformBuffer() failed" << std::endl;
         return false;
     }
-    std::cout << "[SUCCESS] Scene: createCubeBindGroupLayout() succeeded" << std::endl;
+    std::cout << "[SUCCESS] Scene: createUniformBuffer() succeeded" << std::endl;
 
-    if (!createCubePipeline()) {
-        std::cerr << "[ERROR] Scene: createCubePipeline() failed" << std::endl;
+    if (!createBindGroupLayout()) {
+        std::cerr << "[ERROR] Scene: createBindGroupLayout() failed" << std::endl;
         return false;
     }
-    std::cout << "[SUCCESS] Scene: createCubePipeline() succeeded" << std::endl;
+    std::cout << "[SUCCESS] Scene: createBindGroupLayout() succeeded" << std::endl;
+
+    if (!createRenderPipeline()) {
+        std::cerr << "[ERROR] Scene: createRenderPipeline() failed" << std::endl;
+        return false;
+    }
+    std::cout << "[SUCCESS] Scene: createRenderPipeline() succeeded" << std::endl;
 
     return true;
 }
 
-bool Scene::createCubeBuffers() {
-    // Create vertex buffer
-    auto vertices = getCubeVertices();
-    wgpu::BufferDescriptor vertexBufferDesc{};
-    vertexBufferDesc.size = vertices.size() * sizeof(float);
-    vertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
-    cubeVertexBuffer = device->CreateBuffer(&vertexBufferDesc);
-
-    if (!cubeVertexBuffer) {
-        std::cerr << "Failed to create cube vertex buffer" << std::endl;
-        return false;
-    }
-
-    device->GetQueue().WriteBuffer(cubeVertexBuffer, 0, vertices.data(), vertexBufferDesc.size);
-
-    // Create index buffer
-    auto indices = getCubeIndices();
-    wgpu::BufferDescriptor indexBufferDesc{};
-    indexBufferDesc.size = indices.size() * sizeof(uint32_t);
-    indexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
-    cubeIndexBuffer = device->CreateBuffer(&indexBufferDesc);
-
-    if (!cubeIndexBuffer) {
-        std::cerr << "Failed to create cube index buffer" << std::endl;
-        return false;
-    }
-
-    device->GetQueue().WriteBuffer(cubeIndexBuffer, 0, indices.data(), indexBufferDesc.size);
-
+bool Scene::createUniformBuffer() {
     // Calculate aligned uniform size for dynamic offsets
-    alignedUniformSize = ((sizeof(CubeUniforms) + UNIFORM_ALIGNMENT - 1) / UNIFORM_ALIGNMENT) * UNIFORM_ALIGNMENT;
+    alignedUniformSize = ((sizeof(ObjectUniforms) + UNIFORM_ALIGNMENT - 1) / UNIFORM_ALIGNMENT) * UNIFORM_ALIGNMENT;
 
-    // Create uniform buffer with space for multiple cubes
+    // Create uniform buffer with space for multiple objects
     wgpu::BufferDescriptor uniformBufferDesc{};
-    uniformBufferDesc.size = alignedUniformSize * MAX_CUBES;
+    uniformBufferDesc.size = alignedUniformSize * MAX_OBJECTS;
     uniformBufferDesc.usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
-    cubeUniformBuffer = device->CreateBuffer(&uniformBufferDesc);
+    uniformBuffer = device->CreateBuffer(&uniformBufferDesc);
 
-    if (!cubeUniformBuffer) {
-        std::cerr << "Failed to create cube uniform buffer" << std::endl;
+    if (!uniformBuffer) {
+        std::cerr << "[ERROR] Failed to create uniform buffer" << std::endl;
         return false;
     }
 
     return true;
 }
 
-bool Scene::createCubeBindGroupLayout() {
+bool Scene::createBindGroupLayout() {
     wgpu::BindGroupLayoutEntry layoutEntry{};
     layoutEntry.binding = 0;
     layoutEntry.visibility = wgpu::ShaderStage::Vertex;
     layoutEntry.buffer.type = wgpu::BufferBindingType::Uniform;
     layoutEntry.buffer.hasDynamicOffset = true;
-    layoutEntry.buffer.minBindingSize = sizeof(CubeUniforms);
+    layoutEntry.buffer.minBindingSize = sizeof(ObjectUniforms);
 
     wgpu::BindGroupLayoutDescriptor layoutDesc{};
     layoutDesc.entryCount = 1;
     layoutDesc.entries = &layoutEntry;
 
-    cubeBindGroupLayout = device->CreateBindGroupLayout(&layoutDesc);
-    if (!cubeBindGroupLayout) {
-        std::cerr << "Failed to create cube bind group layout" << std::endl;
+    bindGroupLayout = device->CreateBindGroupLayout(&layoutDesc);
+    if (!bindGroupLayout) {
+        std::cerr << "[ERROR] Failed to create bind group layout" << std::endl;
         return false;
     }
 
     // Create bind group
     wgpu::BindGroupEntry bindGroupEntry{};
     bindGroupEntry.binding = 0;
-    bindGroupEntry.buffer = cubeUniformBuffer;
+    bindGroupEntry.buffer = uniformBuffer;
     bindGroupEntry.offset = 0;
     bindGroupEntry.size = alignedUniformSize;
 
     wgpu::BindGroupDescriptor bindGroupDesc{};
-    bindGroupDesc.layout = cubeBindGroupLayout;
+    bindGroupDesc.layout = bindGroupLayout;
     bindGroupDesc.entryCount = 1;
     bindGroupDesc.entries = &bindGroupEntry;
 
-    cubeBindGroup = device->CreateBindGroup(&bindGroupDesc);
-    if (!cubeBindGroup) {
-        std::cerr << "Failed to create cube bind group" << std::endl;
+    bindGroup = device->CreateBindGroup(&bindGroupDesc);
+    if (!bindGroup) {
+        std::cerr << "[ERROR] Failed to create bind group" << std::endl;
         return false;
     }
 
     return true;
 }
 
-bool Scene::createCubePipeline() {
+bool Scene::createRenderPipeline() {
     wgpu::ShaderModule vertexShader = shaderManager->loadShader("render/cube_vertex.wgsl");
     wgpu::ShaderModule fragmentShader = shaderManager->loadShader("render/cube_fragment.wgsl");
 
     if (!vertexShader || !fragmentShader) {
-        std::cerr << "Failed to load cube shaders" << std::endl;
+        std::cerr << "[ERROR] Failed to load shaders" << std::endl;
         return false;
     }
 
@@ -209,13 +223,14 @@ bool Scene::createCubePipeline() {
     pipelineDesc.vertex.entryPoint = "vs_main";
 
     // Vertex buffer layout
+    // Vertex struct: position(12) + normal(12) + texCoord(12) + color(12) = 48 bytes
     wgpu::VertexAttribute positionAttr{};
     positionAttr.format = wgpu::VertexFormat::Float32x3;
-    positionAttr.offset = 0;
+    positionAttr.offset = 0;  // Position is at offset 0
     positionAttr.shaderLocation = 0;
 
     wgpu::VertexBufferLayout vertexBufferLayout{};
-    vertexBufferLayout.arrayStride = 3 * sizeof(float);
+    vertexBufferLayout.arrayStride = 12 * sizeof(float);  // 48 bytes: Vec3(pos) + Vec3(norm) + Vec3(tex) + Vec3(col)
     vertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
     vertexBufferLayout.attributeCount = 1;
     vertexBufferLayout.attributes = &positionAttr;
@@ -239,7 +254,7 @@ bool Scene::createCubePipeline() {
     // Pipeline layout
     wgpu::PipelineLayoutDescriptor layoutDesc{};
     layoutDesc.bindGroupLayoutCount = 1;
-    layoutDesc.bindGroupLayouts = &cubeBindGroupLayout;
+    layoutDesc.bindGroupLayouts = &bindGroupLayout;
 
     wgpu::PipelineLayout pipelineLayout = device->CreatePipelineLayout(&layoutDesc);
     pipelineDesc.layout = pipelineLayout;
@@ -255,58 +270,53 @@ bool Scene::createCubePipeline() {
     pipelineDesc.multisample.mask = ~0u;
     pipelineDesc.multisample.alphaToCoverageEnabled = false;
 
-    cubePipeline = device->CreateRenderPipeline(&pipelineDesc);
-    if (!cubePipeline) {
-        std::cerr << "Failed to create cube render pipeline" << std::endl;
+    renderPipeline = device->CreateRenderPipeline(&pipelineDesc);
+    if (!renderPipeline) {
+        std::cerr << "[ERROR] Failed to create render pipeline" << std::endl;
         return false;
     }
 
     return true;
 }
 
-void Scene::updateCubeUniforms(const CubeObject& cube, size_t cubeIndex) {
-    CubeUniforms uniforms;
+// ========== Rendering ==========
+
+void Scene::updateObjectUniforms(const SceneObject& object, size_t objectIndex) {
+    ObjectUniforms uniforms;
     uniforms.viewProj = camera->getViewProjectionMatrix();
-    uniforms.model = cube.getModelMatrix();
-    uniforms.time = cube.getAnimationTime();
+    uniforms.model = object.getModelMatrix();
+    uniforms.time = object.getAnimationTime();
 
-    // Write to the specific offset for this cube
-    uint32_t offset = static_cast<uint32_t>(cubeIndex * alignedUniformSize);
-    device->GetQueue().WriteBuffer(cubeUniformBuffer, offset, &uniforms, sizeof(CubeUniforms));
+    // Write to the specific offset for this object
+    uint32_t offset = static_cast<uint32_t>(objectIndex * alignedUniformSize);
+    device->GetQueue().WriteBuffer(uniformBuffer, offset, &uniforms, sizeof(ObjectUniforms));
 }
 
-std::array<float, Scene::CUBE_VERTEX_COUNT * 3> Scene::getCubeVertices() {
-    // Make cube larger for better visibility
-    float size = 1.0f;
-    return {{
-        // Front face
-        -size, -size,  size,
-         size, -size,  size,
-         size,  size,  size,
-        -size,  size,  size,
-        // Back face
-        -size, -size, -size,
-         size, -size, -size,
-         size,  size, -size,
-        -size,  size, -size,
-    }};
-}
-
-std::array<uint32_t, Scene::CUBE_INDEX_COUNT> Scene::getCubeIndices() {
-    return {{
-        // Front face (counter-clockwise from outside)
-        0, 1, 2,  2, 3, 0,
-        // Back face (counter-clockwise from outside) 
-        5, 4, 7,  7, 6, 5,
-        // Left face
-        4, 0, 3,  3, 7, 4,
-        // Right face  
-        1, 5, 6,  6, 2, 1,
-        // Top face
-        3, 2, 6,  6, 7, 3,
-        // Bottom face
-        0, 4, 5,  5, 1, 0,
-    }};
+void Scene::renderObject(wgpu::RenderPassEncoder& renderPass, 
+                        const SceneObject& object, 
+                        size_t objectIndex) {
+    auto model = object.getModel();
+    if (!model) return;
+    
+    // Update uniforms
+    updateObjectUniforms(object, objectIndex);
+    
+    // Set bind group with dynamic offset
+    uint32_t dynamicOffset = static_cast<uint32_t>(objectIndex * alignedUniformSize);
+    renderPass.SetBindGroup(0, bindGroup, 1, &dynamicOffset);
+    
+    // Render each mesh in the model
+    const auto& meshes = model->getMeshes();
+    for (const auto& mesh : meshes) {
+        if (!mesh || !mesh->hasGPUResources()) continue;
+        
+        // Set vertex and index buffers
+        renderPass.SetVertexBuffer(0, mesh->getVertexBuffer());
+        renderPass.SetIndexBuffer(mesh->getIndexBuffer(), wgpu::IndexFormat::Uint32);
+        
+        // Draw
+        renderPass.DrawIndexed(static_cast<uint32_t>(mesh->getIndexCount()), 1, 0, 0, 0);
+    }
 }
 
 } // namespace rendering

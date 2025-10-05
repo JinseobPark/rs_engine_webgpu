@@ -35,10 +35,11 @@ bool Engine::initialize() {
     // Add default systems if not already added
     if (systems.empty()) {
         std::cout << "[INFO] Adding default engine systems..." << std::endl;
-        addSystem<ApplicationSystem>();
-        addSystem<InputSystem>();
-        addSystem<PhysicsSystem>();
-        addSystem<RenderSystem>();
+        addSystem<ApplicationSystem>();  // -100: Window, WebGPU, Events
+        addSystem<ResourceSystem>();     // -75:  Resources (before Render)
+        addSystem<InputSystem>();        // -50:  Input handling
+        addSystem<PhysicsSystem>();      // 50:   Physics simulation
+        addSystem<RenderSystem>();       // 100:  Rendering
         std::cout << "[SUCCESS] Default systems added" << std::endl;
     }
 
@@ -198,29 +199,55 @@ void Engine::getWindowSize(uint32_t& width, uint32_t& height) const {
 
 // ========== Scene Control ==========
 
-void Engine::addSceneObject(const std::string& name, 
-                           const Vec3& position,
-                           const Vec3& scale) {
+bool Engine::createSceneObject(const std::string& name) {
+    auto* renderSystem = getSystem<RenderSystem>();
+    if (!renderSystem || !renderSystem->getScene()) {
+        return false;
+    }
+    
+    return renderSystem->getScene()->createObject(name) != nullptr;
+}
+
+bool Engine::addMeshToSceneObject(const std::string& objectName, uint64_t meshHandle) {
+    auto* renderSystem = getSystem<RenderSystem>();
+    if (!renderSystem || !renderSystem->getScene()) {
+        return false;
+    }
+    
+    return renderSystem->getScene()->addMeshToObject(objectName, meshHandle);
+}
+
+void Engine::setObjectPosition(const std::string& name, const Vec3& position) {
     auto* renderSystem = getSystem<RenderSystem>();
     if (renderSystem && renderSystem->getScene()) {
-        // Scene의 addCube는 position, rotation, scale을 받음 (name 파라미터 없음)
-        renderSystem->getScene()->addCube(position, Vec3(0.0f, 0.0f, 0.0f), scale);
+        auto* object = renderSystem->getScene()->getObject(name);
+        if (object) {
+            object->setPosition(position);
+        }
+    }
+}
+
+void Engine::setObjectScale(const std::string& name, const Vec3& scale) {
+    auto* renderSystem = getSystem<RenderSystem>();
+    if (renderSystem && renderSystem->getScene()) {
+        auto* object = renderSystem->getScene()->getObject(name);
+        if (object) {
+            object->setScale(scale);
+        }
     }
 }
 
 void Engine::removeSceneObject(const std::string& name) {
     auto* renderSystem = getSystem<RenderSystem>();
     if (renderSystem && renderSystem->getScene()) {
-        // 향후 Scene에 removeObject 메서드 추가 필요
-        std::cerr << "[WARNING] removeSceneObject not yet implemented" << std::endl;
+        renderSystem->getScene()->removeObject(name);
     }
 }
 
 void Engine::clearScene() {
     auto* renderSystem = getSystem<RenderSystem>();
     if (renderSystem && renderSystem->getScene()) {
-        // 향후 Scene에 clear 메서드 추가 필요
-        std::cerr << "[WARNING] clearScene not yet implemented" << std::endl;
+        renderSystem->getScene()->clearAllObjects();
     }
 }
 
