@@ -33,14 +33,14 @@ Scene::Scene(wgpu::Device* dev) : device(dev) {
 }
 
 bool Scene::initialize() {
-    std::cout << "🎯 Scene::initialize() started..." << std::endl;
+    std::cout << "[INFO] Scene::initialize() started..." << std::endl;
 
     if (!createCubeRenderingResources()) {
-        std::cerr << "❌ Scene: Failed to create cube rendering resources" << std::endl;
+        std::cerr << "[ERROR] Scene: Failed to create cube rendering resources" << std::endl;
         return false;
     }
 
-    std::cout << "✅ Scene::initialize() completed successfully!" << std::endl;
+    std::cout << "[SUCCESS] Scene::initialize() completed successfully!" << std::endl;
     return true;
 }
 
@@ -76,34 +76,34 @@ void Scene::render(wgpu::RenderPassEncoder& renderPass) {
 void Scene::addCube(const Vec3& position, const Vec3& rotation, const Vec3& scale) {
     auto cube = std::make_unique<CubeObject>(position, rotation, scale);
     cubeObjects.push_back(std::move(cube));
-    std::cout << "✅ Added cube to scene. Total cubes: " << cubeObjects.size() << std::endl;
+    std::cout << "[SUCCESS] Added cube to scene. Total cubes: " << cubeObjects.size() << std::endl;
 }
 
 void Scene::removeAllCubes() {
     cubeObjects.clear();
-    std::cout << "🧹 Removed all cubes from scene" << std::endl;
+    std::cout << "[INFO] Removed all cubes from scene" << std::endl;
 }
 
 
 
 bool Scene::createCubeRenderingResources() {
     if (!createCubeBuffers()) {
-        std::cerr << "❌ Scene: createCubeBuffers() failed" << std::endl;
+        std::cerr << "[ERROR] Scene: createCubeBuffers() failed" << std::endl;
         return false;
     }
-    std::cout << "✅ Scene: createCubeBuffers() succeeded" << std::endl;
+    std::cout << "[SUCCESS] Scene: createCubeBuffers() succeeded" << std::endl;
 
     if (!createCubeBindGroupLayout()) {
-        std::cerr << "❌ Scene: createCubeBindGroupLayout() failed" << std::endl;
+        std::cerr << "[ERROR] Scene: createCubeBindGroupLayout() failed" << std::endl;
         return false;
     }
-    std::cout << "✅ Scene: createCubeBindGroupLayout() succeeded" << std::endl;
+    std::cout << "[SUCCESS] Scene: createCubeBindGroupLayout() succeeded" << std::endl;
 
     if (!createCubePipeline()) {
-        std::cerr << "❌ Scene: createCubePipeline() failed" << std::endl;
+        std::cerr << "[ERROR] Scene: createCubePipeline() failed" << std::endl;
         return false;
     }
-    std::cout << "✅ Scene: createCubePipeline() succeeded" << std::endl;
+    std::cout << "[SUCCESS] Scene: createCubePipeline() succeeded" << std::endl;
 
     return true;
 }

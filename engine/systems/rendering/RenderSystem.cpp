@@ -12,23 +12,23 @@ bool RenderSystem::initialize(Engine* engineRef) {
         return false;
     }
 
-    std::cout << "🎯 Initializing Render System..." << std::endl;
+    std::cout << "[INFO] Initializing Render System..." << std::endl;
 
     // Get ApplicationSystem
     appSystem = engine->getSystem<ApplicationSystem>();
     if (!appSystem) {
-        std::cerr << "❌ ApplicationSystem not found" << std::endl;
+        std::cerr << "[ERROR] ApplicationSystem not found" << std::endl;
         return false;
     }
 
     // Get InputSystem (optional, for camera control)
     inputSystem = engine->getSystem<InputSystem>();
     if (!inputSystem) {
-        std::cout << "⚠️  InputSystem not found - camera control will be disabled" << std::endl;
+        std::cout << "[WARNING] InputSystem not found - camera control will be disabled" << std::endl;
     }
 
     if (!initializeScene()) {
-        std::cerr << "❌ Failed to initialize scene" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize scene" << std::endl;
         return false;
     }
     
@@ -39,17 +39,17 @@ bool RenderSystem::initialize(Engine* engineRef) {
 
 #ifndef __EMSCRIPTEN__
     if (!initializeGUI()) {
-        std::cerr << "❌ Failed to initialize GUI" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize GUI" << std::endl;
         return false;
     }
 
     if (!createSceneRenderTarget()) {
-        std::cerr << "❌ Failed to create scene render target" << std::endl;
+        std::cerr << "[ERROR] Failed to create scene render target" << std::endl;
         return false;
     }
 #endif
 
-    std::cout << "✅ Render System initialized" << std::endl;
+    std::cout << "[SUCCESS] Render System initialized" << std::endl;
     return true;
 }
 
@@ -92,35 +92,35 @@ void RenderSystem::onShutdown() {
 }
 
 bool RenderSystem::initializeScene() {
-    std::cout << "🎯 Initializing Scene..." << std::endl;
+    std::cout << "[INFO] Initializing Scene..." << std::endl;
 
     scene = std::make_unique<rendering::Scene>(&appSystem->getDevice());
 
     if (!scene->initialize()) {
-        std::cerr << "❌ Failed to initialize scene" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize scene" << std::endl;
         return false;
     }
 
-    std::cout << "✅ Scene initialized successfully!" << std::endl;
+    std::cout << "[SUCCESS] Scene initialized successfully!" << std::endl;
     return true;
 }
 
 #ifndef __EMSCRIPTEN__
 bool RenderSystem::initializeGUI() {
-    std::cout << "🎯 Initializing GUI..." << std::endl;
+    std::cout << "[INFO] Initializing GUI..." << std::endl;
 
     guiManager = std::make_unique<gui::ImGuiManager>();
 
     if (!guiManager->initialize(appSystem->getWindow(), appSystem->getDevice(), 
                                  wgpu::TextureFormat::BGRA8Unorm)) {
-        std::cerr << "❌ Failed to initialize GUI" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize GUI" << std::endl;
         return false;
     }
 
     // Set render system reference for GUI to access scene texture
     guiManager->setRenderSystem(this);
 
-    std::cout << "✅ GUI initialized successfully!" << std::endl;
+    std::cout << "[SUCCESS] GUI initialized successfully!" << std::endl;
     return true;
 }
 
@@ -155,7 +155,7 @@ bool RenderSystem::createSceneRenderTarget() {
         return false;
     }
 
-    std::cout << "✅ Scene render target created (" << sceneTextureWidth 
+    std::cout << "[SUCCESS] Scene render target created (" << sceneTextureWidth 
               << "x" << sceneTextureHeight << ")" << std::endl;
     return true;
 }

@@ -132,7 +132,7 @@ bool Texture::createGPUResources(wgpu::Device device) {
     // Upload pixel data via buffer (workaround for API compatibility)
     // TODO: Use WriteTexture when API stabilizes
     // For now, we'll mark as created but data upload will be handled separately
-    std::cout << "⚠️  Texture GPU upload needs WriteTexture API implementation" << std::endl;
+    std::cout << "[WARNING] Texture GPU upload needs WriteTexture API implementation" << std::endl;
     
     // Create texture view
     wgpu::TextureViewDescriptor viewDesc;

@@ -8,7 +8,7 @@ using rs_engine::Vec3;
 #endif
 
 SeobJJangApp::SeobJJangApp() {
-    std::cout << "🎮 Creating SeobJJang App..." << std::endl;
+    std::cout << "[INFO] Creating SeobJJang App..." << std::endl;
 }
 
 SeobJJangApp::~SeobJJangApp() {
@@ -18,7 +18,7 @@ SeobJJangApp::~SeobJJangApp() {
 bool SeobJJangApp::init() {
     // Initialize engine (systems added automatically)
     if (!engine.initialize()) {
-        std::cerr << "❌ Failed to initialize engine" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize engine" << std::endl;
         return false;
     }
 
@@ -32,24 +32,24 @@ bool SeobJJangApp::init() {
 }
 
 void SeobJJangApp::setupScene() {
-    // ✅ Use Engine interface ONLY - NO direct system access
+    // [OK] Use Engine interface ONLY - NO direct system access
     
     // Add scene objects
     engine.addSceneObject("Cube1", Vec3(-2.0f, 0.0f, 0.0f), Vec3(1.0f, 1.0f, 1.0f));
     engine.addSceneObject("Cube2", Vec3(0.0f, 0.0f, 0.0f), Vec3(1.0f, 1.0f, 1.0f));
     engine.addSceneObject("Cube3", Vec3(2.0f, 0.0f, 0.0f), Vec3(1.0f, 1.0f, 1.0f));
     
-    // Setup camera through Engine ✅
+    // Setup camera through Engine [OK]
     engine.setCameraPosition(Vec3(0.0f, 2.0f, 5.0f));
     engine.setCameraTarget(Vec3(0.0f, 0.0f, 0.0f));
     engine.setCameraFOV(60.0f);
     
-    // Set physics quality through Engine ✅
+    // Set physics quality through Engine [OK]
     engine.setPhysicsQuality(1.0f);
     
-    std::cout << "   📦 Added 3 cubes to scene" << std::endl;
-    std::cout << "   📷 Camera positioned at (0, 2, 5)" << std::endl;
-    std::cout << "   ⚙️  Physics quality set to 1.0" << std::endl;
+    std::cout << "   [INFO] Added 3 cubes to scene" << std::endl;
+    std::cout << "   [INFO] Camera positioned at (0, 2, 5)" << std::endl;
+    std::cout << "   [INFO] Physics quality set to 1.0" << std::endl;
 }
 
 void SeobJJangApp::run() {
@@ -62,17 +62,17 @@ void SeobJJangApp::run() {
         },
         this, 0, 1);
 #else
-    // Native: Direct loop - Use Engine interface ✅
-    std::cout << "🔄 Starting main loop (using Engine::shouldClose())...\n" << std::endl;
+    // Native: Direct loop - Use Engine interface [OK]
+    std::cout << "[INFO] Starting main loop (using Engine::shouldClose())...\n" << std::endl;
     while (!engine.shouldClose()) {
         engine.update();
     }
-    std::cout << "\n🛑 Main loop ended" << std::endl;
+    std::cout << "\n[INFO] Main loop ended" << std::endl;
 #endif
 }
 
 void SeobJJangApp::shutdown() {
-    std::cout << "🧹 Cleaning up SeobJJang Viewer..." << std::endl;
+    std::cout << "[INFO] Cleaning up SeobJJang Viewer..." << std::endl;
     engine.shutdown();
-    std::cout << "✅ Cleanup complete" << std::endl;
+    std::cout << "[SUCCESS] Cleanup complete" << std::endl;
 }

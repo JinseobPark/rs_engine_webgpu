@@ -13,13 +13,13 @@ ResourceManager::~ResourceManager() {
 
 void ResourceManager::initialize(wgpu::Device wgpuDevice) {
     device = wgpuDevice;
-    std::cout << "✅ ResourceManager initialized" << std::endl;
+    std::cout << "[SUCCESS] ResourceManager initialized" << std::endl;
 }
 
 void ResourceManager::shutdown() {
     clearAllResources();
     device = nullptr;
-    std::cout << "🔌 ResourceManager shutdown" << std::endl;
+    std::cout << "[INFO] ResourceManager shutdown" << std::endl;
 }
 
 // ========== Model Management ==========
@@ -28,12 +28,12 @@ ResourceHandle ResourceManager::loadModel(const std::string& name, const std::st
     // Check if already loaded
     auto it = pathToHandle.find(filepath);
     if (it != pathToHandle.end()) {
-        std::cout << "📦 Model already loaded: " << name << " (" << filepath << ")" << std::endl;
+        std::cout << "[INFO] Model already loaded: " << name << " (" << filepath << ")" << std::endl;
         return it->second;
     }
     
     // TODO: Implement actual model loading with ModelLoader
-    std::cerr << "❌ Model loading not yet implemented: " << filepath << std::endl;
+    std::cerr << "[ERROR] Model loading not yet implemented: " << filepath << std::endl;
     
     return INVALID_RESOURCE_HANDLE;
 }
@@ -45,7 +45,7 @@ ResourceHandle ResourceManager::createModel(const std::string& name, std::shared
     
     // Check if name already exists
     if (hasResource(name)) {
-        std::cerr << "⚠️  Model already exists: " << name << std::endl;
+        std::cerr << "[WARNING] Model already exists: " << name << std::endl;
         return nameToHandle[name];
     }
     
@@ -62,7 +62,7 @@ ResourceHandle ResourceManager::createModel(const std::string& name, std::shared
     
     updateMemoryStats();
     
-    std::cout << "✅ Model created: " << name << " (Handle: " << handle << ")" << std::endl;
+    std::cout << "[SUCCESS] Model created: " << name << " (Handle: " << handle << ")" << std::endl;
     return handle;
 }
 
@@ -84,7 +84,7 @@ ResourceHandle ResourceManager::createMesh(const std::string& name, std::shared_
     }
     
     if (hasResource(name)) {
-        std::cerr << "⚠️  Mesh already exists: " << name << std::endl;
+        std::cerr << "[WARNING] Mesh already exists: " << name << std::endl;
         return nameToHandle[name];
     }
     
@@ -100,7 +100,7 @@ ResourceHandle ResourceManager::createMesh(const std::string& name, std::shared_
     
     updateMemoryStats();
     
-    std::cout << "✅ Mesh created: " << name << " (Handle: " << handle << ")" << std::endl;
+    std::cout << "[SUCCESS] Mesh created: " << name << " (Handle: " << handle << ")" << std::endl;
     return handle;
 }
 
@@ -134,7 +134,7 @@ ResourceHandle ResourceManager::createPlaneMesh(const std::string& name, float w
 ResourceHandle ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
     auto it = pathToHandle.find(filepath);
     if (it != pathToHandle.end()) {
-        std::cout << "📦 Texture already loaded: " << name << " (" << filepath << ")" << std::endl;
+        std::cout << "[INFO] Texture already loaded: " << name << " (" << filepath << ")" << std::endl;
         return it->second;
     }
     
@@ -142,7 +142,7 @@ ResourceHandle ResourceManager::loadTexture(const std::string& name, const std::
     texture->metadata.filepath = filepath;
     
     if (!texture->loadFromFile(filepath)) {
-        std::cerr << "❌ Failed to load texture: " << filepath << std::endl;
+        std::cerr << "[ERROR] Failed to load texture: " << filepath << std::endl;
         return INVALID_RESOURCE_HANDLE;
     }
     
@@ -157,7 +157,7 @@ ResourceHandle ResourceManager::loadTexture(const std::string& name, const std::
     
     updateMemoryStats();
     
-    std::cout << "✅ Texture loaded: " << name << " (" << filepath << ")" << std::endl;
+    std::cout << "[SUCCESS] Texture loaded: " << name << " (" << filepath << ")" << std::endl;
     return handle;
 }
 
@@ -167,7 +167,7 @@ ResourceHandle ResourceManager::createTexture(const std::string& name, std::shar
     }
     
     if (hasResource(name)) {
-        std::cerr << "⚠️  Texture already exists: " << name << std::endl;
+        std::cerr << "[WARNING] Texture already exists: " << name << std::endl;
         return nameToHandle[name];
     }
     
@@ -183,7 +183,7 @@ ResourceHandle ResourceManager::createTexture(const std::string& name, std::shar
     
     updateMemoryStats();
     
-    std::cout << "✅ Texture created: " << name << " (Handle: " << handle << ")" << std::endl;
+    std::cout << "[SUCCESS] Texture created: " << name << " (Handle: " << handle << ")" << std::endl;
     return handle;
 }
 
@@ -243,7 +243,7 @@ void ResourceManager::removeResource(ResourceHandle handle) {
         resources.erase(it);
         updateMemoryStats();
         
-        std::cout << "🗑️  Resource removed (Handle: " << handle << ")" << std::endl;
+        std::cout << "[INFO] Resource removed (Handle: " << handle << ")" << std::endl;
     }
 }
 
@@ -255,7 +255,7 @@ void ResourceManager::removeResource(const std::string& name) {
 }
 
 void ResourceManager::clearAllResources() {
-    std::cout << "🗑️  Clearing all resources (" << resources.size() << " total)" << std::endl;
+    std::cout << "[INFO] Clearing all resources (" << resources.size() << " total)" << std::endl;
     
     for (auto& pair : resources) {
         pair.second->unload();
@@ -273,7 +273,7 @@ void ResourceManager::clearAllResources() {
 
 bool ResourceManager::createGPUResources(ResourceHandle handle) {
     if (!device) {
-        std::cerr << "❌ No device available for GPU resource creation" << std::endl;
+        std::cerr << "[ERROR] No device available for GPU resource creation" << std::endl;
         return false;
     }
     
@@ -296,11 +296,11 @@ bool ResourceManager::createGPUResources(ResourceHandle handle) {
 
 void ResourceManager::createAllGPUResources() {
     if (!device) {
-        std::cerr << "❌ No device available for GPU resource creation" << std::endl;
+        std::cerr << "[ERROR] No device available for GPU resource creation" << std::endl;
         return;
     }
     
-    std::cout << "🎨 Creating GPU resources for all loaded resources..." << std::endl;
+    std::cout << "[INFO] Creating GPU resources for all loaded resources..." << std::endl;
     
     int successCount = 0;
     int failCount = 0;
@@ -313,7 +313,7 @@ void ResourceManager::createAllGPUResources() {
         }
     }
     
-    std::cout << "✅ GPU resources created: " << successCount << " succeeded, " 
+    std::cout << "[SUCCESS] GPU resources created: " << successCount << " succeeded, " 
               << failCount << " failed" << std::endl;
 }
 
@@ -333,7 +333,7 @@ void ResourceManager::releaseGPUResources(ResourceHandle handle) {
 }
 
 void ResourceManager::releaseAllGPUResources() {
-    std::cout << "🔌 Releasing all GPU resources..." << std::endl;
+    std::cout << "[INFO] Releasing all GPU resources..." << std::endl;
     
     for (auto& pair : resources) {
         releaseGPUResources(pair.first);

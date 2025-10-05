@@ -10,19 +10,19 @@ bool PhysicsSystem::initialize(Engine* engineRef) {
         return false;
     }
 
-    std::cout << "🎯 Initializing Physics System..." << std::endl;
+    std::cout << "[INFO] Initializing Physics System..." << std::endl;
 
     // Get ApplicationSystem
     appSystem = engine->getSystem<ApplicationSystem>();
     if (!appSystem) {
-        std::cerr << "❌ ApplicationSystem not found" << std::endl;
+        std::cerr << "[ERROR] ApplicationSystem not found" << std::endl;
         return false;
     }
 
     // Create physics world
     physicsWorld = std::make_unique<PhysicsWorld>(&appSystem->getDevice());
 
-    std::cout << "✅ Physics System initialized (Fixed timestep: " 
+    std::cout << "[SUCCESS] Physics System initialized (Fixed timestep: " 
               << fixedTimeStep << "s)" << std::endl;
     return true;
 }

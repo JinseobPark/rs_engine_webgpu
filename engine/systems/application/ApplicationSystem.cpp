@@ -15,21 +15,21 @@ bool ApplicationSystem::initialize(Engine* engineRef) {
         return false;
     }
 
-    std::cout << "🎯 Initializing Application System..." << std::endl;
+    std::cout << "[INFO] Initializing Application System..." << std::endl;
 
     if (!initPlatform()) {
-        std::cerr << "❌ Failed to initialize platform" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize platform" << std::endl;
         return false;
     }
 
     if (!initWebGPU()) {
-        std::cerr << "❌ Failed to initialize WebGPU" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize WebGPU" << std::endl;
         return false;
     }
 
     configureSurface();
 
-    std::cout << "✅ Application System initialized" << std::endl;
+    std::cout << "[SUCCESS] Application System initialized" << std::endl;
     return true;
 }
 
@@ -66,24 +66,24 @@ void ApplicationSystem::onShutdown() {
 // ========== Web Platform Implementation ==========
 
 bool ApplicationSystem::initPlatform() {
-    std::cout << "🌐 Initializing Web Platform (Emscripten)" << std::endl;
+    std::cout << "[INFO] Initializing Web Platform (Emscripten)" << std::endl;
     // Web platform doesn't need window creation - canvas is in HTML
     return true;
 }
 
 bool ApplicationSystem::initWebGPU() {
-    std::cout << "🎨 Initializing WebGPU (Browser)" << std::endl;
+    std::cout << "[INFO] Initializing WebGPU (Browser)" << std::endl;
 
     // Create WebGPU instance (using default descriptor for browser)
     // Note: In Emscripten, wgpu::CreateInstance() automatically uses navigator.gpu
     instance = wgpu::CreateInstance(nullptr);
     if (!instance) {
-        std::cerr << "❌ Failed to create WebGPU instance" << std::endl;
+        std::cerr << "[ERROR] Failed to create WebGPU instance" << std::endl;
         std::cerr << "   Make sure your browser supports WebGPU" << std::endl;
         return false;
     }
     
-    std::cout << "✅ WebGPU instance created" << std::endl;
+    std::cout << "[SUCCESS] WebGPU instance created" << std::endl;
 
     // Request adapter (async in browser, but we handle it synchronously via Asyncify)
     wgpu::RequestAdapterOptions adapterOpts = {};
@@ -100,7 +100,7 @@ bool ApplicationSystem::initWebGPU() {
         if (status == WGPURequestAdapterStatus_Success) {
             data->adapter = wgpu::Adapter::Acquire(adapter);
         } else {
-            std::cerr << "❌ Adapter request failed: " << message << std::endl;
+            std::cerr << "[ERROR] Adapter request failed: " << message << std::endl;
         }
         data->requestEnded = true;
     };
@@ -132,7 +132,7 @@ bool ApplicationSystem::initWebGPU() {
         if (status == WGPURequestDeviceStatus_Success) {
             data->device = wgpu::Device::Acquire(device);
         } else {
-            std::cerr << "❌ Device request failed: " << message << std::endl;
+            std::cerr << "[ERROR] Device request failed: " << message << std::endl;
         }
         data->requestEnded = true;
     };
@@ -172,11 +172,11 @@ bool ApplicationSystem::initWebGPU() {
 
     surface = instance.CreateSurface(&surfaceDesc);
     if (!surface) {
-        std::cerr << "❌ Failed to create surface" << std::endl;
+        std::cerr << "[ERROR] Failed to create surface" << std::endl;
         return false;
     }
 
-    std::cout << "✅ WebGPU initialized (Web)" << std::endl;
+    std::cout << "[SUCCESS] WebGPU initialized (Web)" << std::endl;
     return true;
 }
 
@@ -200,18 +200,18 @@ void ApplicationSystem::configureSurface() {
 // ========== Native Platform Implementation ==========
 
 bool ApplicationSystem::initPlatform() {
-    std::cout << "🖥️  Initializing Native Platform (GLFW)" << std::endl;
+    std::cout << "[INFO] Initializing Native Platform (GLFW)" << std::endl;
 
     if (!s_glfwInitialized) {
         glfwSetErrorCallback(errorCallback);
 
         if (!glfwInit()) {
-            std::cerr << "❌ Failed to initialize GLFW" << std::endl;
+            std::cerr << "[ERROR] Failed to initialize GLFW" << std::endl;
             return false;
         }
 
         s_glfwInitialized = true;
-        std::cout << "✅ GLFW initialized" << std::endl;
+        std::cout << "[SUCCESS] GLFW initialized" << std::endl;
     }
 
     // Configure GLFW for WebGPU
@@ -220,7 +220,7 @@ bool ApplicationSystem::initPlatform() {
 
     window = glfwCreateWindow(windowWidth, windowHeight, "RS Engine WebGPU", nullptr, nullptr);
     if (!window) {
-        std::cerr << "❌ Failed to create GLFW window" << std::endl;
+        std::cerr << "[ERROR] Failed to create GLFW window" << std::endl;
         return false;
     }
 
@@ -234,12 +234,12 @@ bool ApplicationSystem::initPlatform() {
     glfwSetScrollCallback(window, scrollCallback);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
-    std::cout << "✅ Native window created" << std::endl;
+    std::cout << "[SUCCESS] Native window created" << std::endl;
     return true;
 }
 
 bool ApplicationSystem::initWebGPU() {
-    std::cout << "🎨 Initializing WebGPU (Dawn)" << std::endl;
+    std::cout << "[INFO] Initializing WebGPU (Dawn)" << std::endl;
 
     // Initialize Dawn procedures first
     DawnProcTable procs = dawn::native::GetProcs();
@@ -248,28 +248,28 @@ bool ApplicationSystem::initWebGPU() {
     // Create native instance
     dawnInstance = std::make_unique<dawn::native::Instance>();
     if (!dawnInstance) {
-        std::cerr << "❌ Failed to create Dawn native instance" << std::endl;
+        std::cerr << "[ERROR] Failed to create Dawn native instance" << std::endl;
         return false;
     }
 
     // Get WebGPU instance from native instance
     instance = wgpu::Instance(dawnInstance->Get());
     if (!instance) {
-        std::cerr << "❌ Failed to get WebGPU instance" << std::endl;
+        std::cerr << "[ERROR] Failed to get WebGPU instance" << std::endl;
         return false;
     }
 
     // Create surface for the window
     surface = wgpu::glfw::CreateSurfaceForWindow(instance, window);
     if (!surface) {
-        std::cerr << "❌ Failed to create surface" << std::endl;
+        std::cerr << "[ERROR] Failed to create surface" << std::endl;
         return false;
     }
 
     // Enumerate adapters
     std::vector<dawn::native::Adapter> adapters = dawnInstance->EnumerateAdapters();
     if (adapters.empty()) {
-        std::cerr << "❌ No WebGPU adapters found" << std::endl;
+        std::cerr << "[ERROR] No WebGPU adapters found" << std::endl;
         return false;
     }
 
@@ -281,11 +281,11 @@ bool ApplicationSystem::initWebGPU() {
     device = adapter.CreateDevice(&deviceDesc);
     
     if (!device) {
-        std::cerr << "❌ Failed to create device" << std::endl;
+        std::cerr << "[ERROR] Failed to create device" << std::endl;
         return false;
     }
 
-    std::cout << "✅ WebGPU initialized (Native)" << std::endl;
+    std::cout << "[SUCCESS] WebGPU initialized (Native)" << std::endl;
     return true;
 }
 

@@ -167,7 +167,7 @@ void ImGuiManager::shutdown() {
 #endif
 
     m_initialized = false;
-    std::cout << "[ImGui] Shutdown complete ✅" << std::endl;
+    std::cout << "[ImGui] Shutdown complete" << std::endl;
 }
 
 void ImGuiManager::newFrame() {
@@ -236,10 +236,10 @@ void ImGuiManager::newFrame() {
     //     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
     //     ImGui::SetNextWindowSize(ImVec2(300, 120), ImGuiCond_FirstUseEver);
     //     ImGui::Begin("3D Scene Status", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
-    //     ImGui::Text("🎯 3D Scene Rendering:");
-    //     ImGui::Text("✅ Scene initialized with 3 cubes");
-    //     ImGui::Text("✅ Shaders loaded successfully");
-    //     ImGui::Text("✅ WebGPU renderer active");
+    //     ImGui::Text("3D Scene Rendering:");
+    //     ImGui::Text("Scene initialized with 3 cubes");
+    //     ImGui::Text("Shaders loaded successfully");
+    //     ImGui::Text("WebGPU renderer active");
     //     ImGui::Text("📍 Look at CENTER of window");
     //     ImGui::Text("   (behind this overlay)");
     //     if (ImGui::Button("Hide This Window")) {

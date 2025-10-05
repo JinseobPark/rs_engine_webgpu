@@ -19,12 +19,12 @@ Engine::~Engine() {
 
 bool Engine::initialize() {
     if (isInitialized) {
-        std::cerr << "⚠️  Engine already initialized" << std::endl;
+        std::cerr << "[WARNING] Engine already initialized" << std::endl;
         return true;
     }
 
-    std::cout << "🚀 Initializing Engine..." << std::endl;
-    std::cout << "📦 Platform: "
+    std::cout << "[INFO] Initializing Engine..." << std::endl;
+    std::cout << "[INFO] Platform: "
 #ifdef __EMSCRIPTEN__
               << "Web (Emscripten)"
 #else
@@ -34,12 +34,12 @@ bool Engine::initialize() {
 
     // Add default systems if not already added
     if (systems.empty()) {
-        std::cout << "🔧 Adding default engine systems..." << std::endl;
+        std::cout << "[INFO] Adding default engine systems..." << std::endl;
         addSystem<ApplicationSystem>();
         addSystem<InputSystem>();
         addSystem<PhysicsSystem>();
         addSystem<RenderSystem>();
-        std::cout << "✅ Default systems added" << std::endl;
+        std::cout << "[SUCCESS] Default systems added" << std::endl;
     }
 
     // Sort systems by priority before initialization
@@ -47,16 +47,16 @@ bool Engine::initialize() {
 
     // Initialize all systems in priority order
     for (auto& system : systems) {
-        std::cout << "   🔧 Initializing " << system->getName() 
+        std::cout << "   [INFO] Initializing " << system->getName() 
                   << " (priority: " << system->getPriority() << ")..." << std::endl;
         
         if (!system->initialize(this)) {
-            std::cerr << "❌ Failed to initialize " << system->getName() << std::endl;
+            std::cerr << "[ERROR] Failed to initialize " << system->getName() << std::endl;
             return false;
         }
         
         system->initialized = true;
-        std::cout << "   ✅ " << system->getName() << " initialized" << std::endl;
+        std::cout << "   [SUCCESS] " << system->getName() << " initialized" << std::endl;
     }
 
     // Rebuild cache after initialization
@@ -66,17 +66,17 @@ bool Engine::initialize() {
     }
 
     isInitialized = true;
-    std::cout << "✅ Engine initialized with " << systems.size() << " systems" << std::endl;
+    std::cout << "[SUCCESS] Engine initialized with " << systems.size() << " systems" << std::endl;
     return true;
 }
 
 void Engine::start() {
     if (!isInitialized) {
-        std::cerr << "❌ Cannot start engine - not initialized" << std::endl;
+        std::cerr << "[ERROR] Cannot start engine - not initialized" << std::endl;
         return;
     }
 
-    std::cout << "🎬 Starting Engine..." << std::endl;
+    std::cout << "[INFO] Starting Engine..." << std::endl;
 
     // Call onStart on all systems
     for (auto* system : systemsCache) {
@@ -86,8 +86,8 @@ void Engine::start() {
     isRunning = true;
     startTime = std::chrono::high_resolution_clock::now();
     lastFrameTime = startTime;
-    
-    std::cout << "✅ Engine started" << std::endl;
+
+    std::cout << "[SUCCESS] Engine started" << std::endl;
 }
 
 void Engine::update() {
@@ -114,13 +114,13 @@ void Engine::shutdown() {
         return;
     }
 
-    std::cout << "🛑 Shutting down Engine..." << std::endl;
+    std::cout << "[INFO] Shutting down Engine..." << std::endl;
 
     isRunning = false;
 
     // Shutdown systems in reverse order
     for (auto it = systems.rbegin(); it != systems.rend(); ++it) {
-        std::cout << "   🔌 Shutting down " << (*it)->getName() << "..." << std::endl;
+        std::cout << "   [INFO] Shutting down " << (*it)->getName() << "..." << std::endl;
         (*it)->onShutdown();
     }
 
@@ -128,7 +128,7 @@ void Engine::shutdown() {
     systemsCache.clear();
     isInitialized = false;
 
-    std::cout << "✅ Engine shutdown complete" << std::endl;
+    std::cout << "[SUCCESS] Engine shutdown complete" << std::endl;
 }
 
 void Engine::sortSystems() {
@@ -212,7 +212,7 @@ void Engine::removeSceneObject(const std::string& name) {
     auto* renderSystem = getSystem<RenderSystem>();
     if (renderSystem && renderSystem->getScene()) {
         // 향후 Scene에 removeObject 메서드 추가 필요
-        std::cerr << "⚠️  removeSceneObject not yet implemented" << std::endl;
+        std::cerr << "[WARNING] removeSceneObject not yet implemented" << std::endl;
     }
 }
 
@@ -220,7 +220,7 @@ void Engine::clearScene() {
     auto* renderSystem = getSystem<RenderSystem>();
     if (renderSystem && renderSystem->getScene()) {
         // 향후 Scene에 clear 메서드 추가 필요
-        std::cerr << "⚠️  clearScene not yet implemented" << std::endl;
+        std::cerr << "[WARNING] clearScene not yet implemented" << std::endl;
     }
 }
 

@@ -7,10 +7,10 @@
  * @brief SeobJJang Viewer Application
  * 
  * Demonstrates PERFECT encapsulation following Architecture Philosophy:
- * - ✅ App ONLY knows Engine class
- * - ✅ NO system types or headers
- * - ✅ NO manual system addition
- * - ✅ Engine handles all system management
+ * - [OK] App ONLY knows Engine class
+ * - [OK] NO system types or headers
+ * - [OK] NO manual system addition
+ * - [OK] Engine handles all system management
  * 
  * This app shows:
  * - Automatic system initialization by Engine
@@ -21,7 +21,7 @@
  */
 class SeobJJangApp {
 private:
-    rs_engine::Engine engine;  // ✅ Only dependency
+    rs_engine::Engine engine;  // [OK] Only dependency
 
 public:
     SeobJJangApp();

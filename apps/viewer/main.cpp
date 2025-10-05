@@ -4,7 +4,7 @@ int main() {
     SeobJJangApp app;
 
     if (!app.init()) {
-        std::cerr << "❌ Failed to initialize application" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize application" << std::endl;
         return -1;
     }
 
@@ -15,6 +15,6 @@ int main() {
     app.shutdown();
 #endif
 
-    std::cout << "✅ Application completed successfully." << std::endl;
+    std::cout << "[SUCCESS] Application completed successfully." << std::endl;
     return 0;
 }

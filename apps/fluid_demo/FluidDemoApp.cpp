@@ -6,7 +6,7 @@
 #endif
 
 FluidDemoApp::FluidDemoApp() {
-    std::cout << "🌊 Creating Fluid Demo App..." << std::endl;
+    std::cout << "[INFO] Creating Fluid Demo App..." << std::endl;
 }
 
 FluidDemoApp::~FluidDemoApp() {
@@ -16,14 +16,14 @@ FluidDemoApp::~FluidDemoApp() {
 bool FluidDemoApp::init() {
     // Initialize engine (systems added automatically)
     if (!engine.initialize()) {
-        std::cerr << "❌ Failed to initialize engine" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize engine" << std::endl;
         return false;
     }
 
     // Start engine
     engine.start();
 
-    std::cout << "🌊 Fluid Demo initialized!" << std::endl;
+    std::cout << "[SUCCESS] Fluid Demo initialized!" << std::endl;
     
     // Platform limits
     auto limits = rs_engine::EngineConfig::getLimits();
@@ -47,8 +47,8 @@ void FluidDemoApp::setupScene() {
     // Set physics quality
     engine.setPhysicsQuality(1.0f);
     
-    std::cout << "   📷 Camera positioned for fluid demo" << std::endl;
-    std::cout << "   ⚙️  Physics quality set to 1.0" << std::endl;
+    std::cout << "   [INFO] Camera positioned for fluid demo" << std::endl;
+    std::cout << "   [INFO] Physics quality set to 1.0" << std::endl;
 }
 
 void FluidDemoApp::run() {
@@ -62,16 +62,16 @@ void FluidDemoApp::run() {
         this, 0, 1);
 #else
     // Native: Direct loop
-    std::cout << "🔄 Starting Fluid Demo main loop...\n" << std::endl;
+    std::cout << "[INFO] Starting Fluid Demo main loop...\n" << std::endl;
     while (!engine.shouldClose()) {
         engine.update();
     }
-    std::cout << "\n🛑 Fluid Demo ended" << std::endl;
+    std::cout << "\n[INFO] Fluid Demo ended" << std::endl;
 #endif
 }
 
 void FluidDemoApp::shutdown() {
-    std::cout << "🧹 Cleaning up Fluid Demo..." << std::endl;
+    std::cout << "[INFO] Cleaning up Fluid Demo..." << std::endl;
     engine.shutdown();
-    std::cout << "✅ Cleanup complete" << std::endl;
+    std::cout << "[SUCCESS] Cleanup complete" << std::endl;
 }

@@ -5,7 +5,7 @@ int main() {
     FluidDemoApp app;
     
     if (!app.init()) {
-        std::cerr << "❌ Failed to initialize application" << std::endl;
+        std::cerr << "[ERROR] Failed to initialize application" << std::endl;
         app.shutdown();
         return -1;
     }
@@ -16,6 +16,6 @@ int main() {
     app.shutdown();
 #endif
 
-    std::cout << "✅ Application started successfully." << std::endl;
+    std::cout << "[SUCCESS] Application started successfully." << std::endl;
     return 0;
 }

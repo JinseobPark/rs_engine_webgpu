@@ -25,8 +25,8 @@ bool InputSystem::initialize(Engine* engineRef) {
         return false;
     }
 
-    std::cout << "🎯 Initializing Input System..." << std::endl;
-    std::cout << "✅ Input System initialized" << std::endl;
+    std::cout << "[INFO] Initializing Input System..." << std::endl;
+    std::cout << "[SUCCESS] Input System initialized" << std::endl;
     return true;
 }
 

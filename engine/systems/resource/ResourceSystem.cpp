@@ -10,13 +10,13 @@ bool ResourceSystem::initialize(Engine* engineRef) {
         return false;
     }
     
-    std::cout << "   🔧 Initializing Resource (priority: " << getPriority() << ")..." << std::endl;
-    std::cout << "🎯 Initializing Resource System..." << std::endl;
+    std::cout << "   [INFO] Initializing Resource (priority: " << getPriority() << ")..." << std::endl;
+    std::cout << "[INFO] Initializing Resource System..." << std::endl;
     
     // Get ApplicationSystem for WebGPU device
     appSystem = engine->getSystem<ApplicationSystem>();
     if (!appSystem) {
-        std::cerr << "❌ ApplicationSystem not found! ResourceSystem requires ApplicationSystem." << std::endl;
+        std::cerr << "[ERROR] ApplicationSystem not found! ResourceSystem requires ApplicationSystem." << std::endl;
         return false;
     }
     
@@ -27,8 +27,8 @@ bool ResourceSystem::initialize(Engine* engineRef) {
     resourceManager->initialize(appSystem->getDevice());
     
     initialized = true;
-    std::cout << "✅ Resource System initialized" << std::endl;
-    std::cout << "   ✅ Resource initialized" << std::endl;
+    std::cout << "[SUCCESS] Resource System initialized" << std::endl;
+    std::cout << "   [SUCCESS] Resource initialized" << std::endl;
     
     return true;
 }
@@ -43,14 +43,14 @@ void ResourceSystem::onUpdate(float deltaTime) {
 }
 
 void ResourceSystem::onShutdown() {
-    std::cout << "🔌 Shutting down Resource System..." << std::endl;
+    std::cout << "[INFO] Shutting down Resource System..." << std::endl;
     
     if (resourceManager) {
         resourceManager->shutdown();
         resourceManager.reset();
     }
     
-    std::cout << "✅ Resource System shutdown complete" << std::endl;
+    std::cout << "[SUCCESS] Resource System shutdown complete" << std::endl;
 }
 
 // ========== Model Management ==========
