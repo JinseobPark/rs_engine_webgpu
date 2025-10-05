@@ -64,6 +64,9 @@ public:
     // Scene access
     rendering::Scene* getScene() { return scene.get(); }
     
+    // Input system access (for GUI to control camera)
+    InputSystem* getInputSystem() { return inputSystem; }
+    
 #ifndef __EMSCRIPTEN__
     gui::ImGuiManager* getGUI() { return guiManager.get(); }
     wgpu::TextureView getSceneTextureView() const { return sceneRenderTextureView; }

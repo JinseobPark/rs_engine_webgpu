@@ -126,7 +126,7 @@ bool RenderSystem::initializeGUI() {
         return false;
     }
 
-    // Set render system reference for GUI to access scene texture
+    // Set render system reference for GUI to access scene texture and input system
     guiManager->setRenderSystem(this);
 
     std::cout << "[SUCCESS] GUI initialized successfully!" << std::endl;

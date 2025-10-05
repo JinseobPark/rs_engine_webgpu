@@ -1,5 +1,7 @@
 #include "ImGuiManager.h"
 #include "../systems/rendering/RenderSystem.h"
+#include "../systems/input/InputSystem.h"
+#include "../systems/input/CameraController.h"
 #include <imgui.h>
 #include <imgui_internal.h>  // Required for DockBuilder API
 #include <iostream>
@@ -868,6 +870,67 @@ void ImGuiManager::showViewportControls() {
     if (ImGui::Button("[SHOT]")) {}
     ImGui::SameLine();
     if (ImGui::Button("[RESET]")) {}
+    
+    ImGui::Separator();
+    
+    // Camera Controller Mode
+    ImGui::Text("Camera Controller");
+    static int cameraMode = 0; // 0=Trackball, 1=Orbit, 2=FirstPerson, 3=Free
+    static bool initialized = false;
+    const char* cameraModes[] = { "Trackball", "Orbit", "First Person", "Free" };
+    
+    // Get InputSystem through RenderSystem
+    InputSystem* inputSystem = nullptr;
+    if (m_renderSystem) {
+        inputSystem = m_renderSystem->getInputSystem();
+    }
+    
+    // Initialize from camera controller on first frame
+    if (!initialized && inputSystem) {
+        auto* controller = inputSystem->getCameraController();
+        if (controller) {
+            switch (controller->getMode()) {
+                case CameraController::Mode::Trackball: cameraMode = 0; break;
+                case CameraController::Mode::Orbit: cameraMode = 1; break;
+                case CameraController::Mode::FirstPerson: cameraMode = 2; break;
+                case CameraController::Mode::Free: cameraMode = 3; break;
+            }
+        }
+        initialized = true;
+    }
+    
+    if (ImGui::Combo("Mode", &cameraMode, cameraModes, 4)) {
+        // Mode changed - access camera controller through InputSystem
+        if (inputSystem) {
+            auto* controller = inputSystem->getCameraController();
+            if (controller) {
+                switch (cameraMode) {
+                    case 0: controller->setMode(CameraController::Mode::Trackball); break;
+                    case 1: controller->setMode(CameraController::Mode::Orbit); break;
+                    case 2: controller->setMode(CameraController::Mode::FirstPerson); break;
+                    case 3: controller->setMode(CameraController::Mode::Free); break;
+                }
+                std::cout << "[ImGui] Camera mode changed to: " << cameraModes[cameraMode] << std::endl;
+            }
+        }
+    }
+    
+    // Camera mode descriptions
+    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Controls:");
+    switch (cameraMode) {
+        case 0: // Trackball
+            ImGui::TextWrapped("Right Mouse: Pan\nWheel: Zoom\nMiddle Mouse: Rotate");
+            break;
+        case 1: // Orbit
+            ImGui::TextWrapped("Right Mouse: Pan\nWheel: Zoom\nMiddle Mouse: Orbit");
+            break;
+        case 2: // First Person
+            ImGui::TextWrapped("WASD: Move\nMouse: Look\nShift: Sprint");
+            break;
+        case 3: // Free
+            ImGui::TextWrapped("WASD: Move\nQE: Up/Down\nMouse: Look");
+            break;
+    }
     
     ImGui::Separator();
     

@@ -34,10 +34,27 @@ bool SeobJJangApp::init() {
 void SeobJJangApp::setupScene() {
     // [OK] Use Engine interface ONLY - NO direct system access
     
-    // Add scene objects
-    engine.addSceneObject("Cube1", Vec3(-2.0f, 0.0f, 0.0f), Vec3(1.0f, 1.0f, 1.0f));
-    engine.addSceneObject("Cube2", Vec3(0.0f, 0.0f, 0.0f), Vec3(1.0f, 1.0f, 1.0f));
-    engine.addSceneObject("Cube3", Vec3(2.0f, 0.0f, 0.0f), Vec3(1.0f, 1.0f, 1.0f));
+    // Create cube mesh resource (shared by all objects)
+    uint64_t cubeMeshHandle = engine.createCubeMesh("CubeMesh", 1.0f);
+    uint64_t planeMeshHandle = engine.createPlaneMesh("PlaneMesh", 10.0f, 10.0f);
+    
+    // Create empty scene objects
+    engine.createSceneObject("Cube1");
+    engine.createSceneObject("Cube2");
+    engine.createSceneObject("Cube3");
+    engine.createSceneObject("Plane1");
+
+    // Add cube mesh to each object
+    engine.addMeshToSceneObject("Cube1", cubeMeshHandle);
+    engine.addMeshToSceneObject("Cube2", cubeMeshHandle);
+    engine.addMeshToSceneObject("Cube3", cubeMeshHandle);
+    engine.addMeshToSceneObject("Plane1", planeMeshHandle);
+
+    // Set positions
+    engine.setObjectPosition("Cube1", Vec3(-2.0f, 0.0f, 0.0f));
+    engine.setObjectPosition("Cube2", Vec3(0.0f, 0.0f, 0.0f));
+    engine.setObjectPosition("Cube3", Vec3(2.0f, 0.0f, 0.0f));
+    engine.setObjectPosition("Plane1", Vec3(0.0f, 0.0f, 0.0f));
     
     // Setup camera through Engine [OK]
     engine.setCameraPosition(Vec3(0.0f, 2.0f, 5.0f));
@@ -47,7 +64,7 @@ void SeobJJangApp::setupScene() {
     // Set physics quality through Engine [OK]
     engine.setPhysicsQuality(1.0f);
     
-    std::cout << "   [INFO] Added 3 cubes to scene" << std::endl;
+    std::cout << "   [INFO] Created 3 scene objects with cube meshes" << std::endl;
     std::cout << "   [INFO] Camera positioned at (0, 2, 5)" << std::endl;
     std::cout << "   [INFO] Physics quality set to 1.0" << std::endl;
 }
