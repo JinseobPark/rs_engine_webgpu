@@ -3,25 +3,38 @@
 #include "engine/core/Engine.h"
 #include <iostream>
 
+// Forward declarations
+namespace rs_engine {
+    class RenderSystem;
+    class ResourceSystem;
+    class PhysicsSystem;
+    class InputSystem;
+}
+
 /**
  * @brief SeobJJang Viewer Application
  * 
- * Demonstrates PERFECT encapsulation following Architecture Philosophy:
- * - [OK] App ONLY knows Engine class
- * - [OK] NO system types or headers
- * - [OK] NO manual system addition
- * - [OK] Engine handles all system management
+ * Demonstrates REFACTORED architecture with direct system access:
+ * - App knows Engine for lifecycle management
+ * - App accesses systems directly via getSystem<T>()
+ * - NO unnecessary Engine forwarding methods
+ * - More explicit, cleaner code
  * 
  * This app shows:
  * - Automatic system initialization by Engine
- * - Scene setup through Engine interface
- * - Camera control through Engine interface
- * - Physics control through Engine interface
+ * - Direct system access for scene setup
+ * - Direct camera control via RenderSystem
+ * - Direct physics control via PhysicsSystem
  * - Main loop using Engine::shouldClose()
  */
 class SeobJJangApp {
 private:
-    rs_engine::Engine engine;  // [OK] Only dependency
+    rs_engine::Engine engine;
+    
+    // Cached system references (initialized in init())
+    rs_engine::RenderSystem* renderSystem = nullptr;
+    rs_engine::ResourceSystem* resourceSystem = nullptr;
+    rs_engine::PhysicsSystem* physicsSystem = nullptr;
 
 public:
     SeobJJangApp();

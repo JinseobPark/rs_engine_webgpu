@@ -182,198 +182,24 @@ public:
      * @return true if window close requested
      */
     bool shouldClose() const;
-    
-    /**
-     * @brief Get window dimensions
-     * @param width Output width
-     * @param height Output height
-     */
-    void getWindowSize(uint32_t& width, uint32_t& height) const;
 
-    // ========== Scene Control ==========
-    
-    /**
-     * @brief Create an empty scene object
-     * @param name Unique object name
-     * @return true if successful, false if name already exists
-     */
-    bool createSceneObject(const std::string& name);
-    
-    /**
-     * @brief Add a mesh to an existing scene object
-     * @param objectName Name of the scene object
-     * @param meshHandle Resource handle from createCubeMesh, etc.
-     * @return true if successful
-     */
-    bool addMeshToSceneObject(const std::string& objectName, uint64_t meshHandle);
-    
-    /**
-     * @brief Set object position
-     */
-    void setObjectPosition(const std::string& name, const Vec3& position);
-    
-    /**
-     * @brief Set object scale
-     */
-    void setObjectScale(const std::string& name, const Vec3& scale);
-    
-    /**
-     * @brief Remove object from scene
-     * @param name Object name
-     */
-    void removeSceneObject(const std::string& name);
-    
-    /**
-     * @brief Clear all scene objects
-     */
-    void clearScene();
+    // ========== Direct System Access ==========
+    // Apps should use getSystem<T>() for direct system access.
+    // Example:
+    //   auto* renderSystem = engine.getSystem<RenderSystem>();
+    //   auto* scene = renderSystem->getScene();
+    //   scene->createObject("name");
+    //   scene->getCamera()->setPosition(pos);
+    //
+    //   auto* inputSystem = engine.getSystem<InputSystem>();
+    //   inputSystem->isKeyPressed(KeyCode::A);
+    //
+    //   auto* resourceSystem = engine.getSystem<ResourceSystem>();
+    //   resourceSystem->createCubeMesh("Cube", 1.0f);
 
-    // ========== Camera Control ==========
-    
-    /**
-     * @brief Set camera position
-     * @param position World position
-     */
-    void setCameraPosition(const Vec3& position);
-    
-    /**
-     * @brief Set camera target
-     * @param target Target point to look at
-     */
-    void setCameraTarget(const Vec3& target);
-    
-    /**
-     * @brief Set camera field of view
-     * @param fov Field of view in degrees
-     */
-    void setCameraFOV(float fov);
-
-    // ========== Input Control ==========
-    
-    /**
-     * @brief Check if key was just pressed this frame
-     */
-    bool isKeyPressed(int keyCode) const;
-    
-    /**
-     * @brief Check if key is currently held down
-     */
-    bool isKeyHeld(int keyCode) const;
-    
-    /**
-     * @brief Check if key is down (pressed or held)
-     */
-    bool isKeyDown(int keyCode) const;
-    
-    /**
-     * @brief Check if mouse button was just pressed this frame
-     */
-    bool isMouseButtonPressed(int button) const;
-    
-    /**
-     * @brief Check if mouse button is down
-     */
-    bool isMouseButtonDown(int button) const;
-    
-    /**
-     * @brief Get mouse position
-     */
-    void getMousePosition(double& x, double& y) const;
-    
-    /**
-     * @brief Get mouse movement delta
-     */
-    void getMouseDelta(double& dx, double& dy) const;
-    
-    /**
-     * @brief Lock cursor (for FPS camera)
-     */
-    void lockCursor(bool lock);
-    
-    /**
-     * @brief Show or hide cursor
-     */
-    void showCursor(bool show);
-
-    // ========== Physics Control ==========
-    
-    /**
-     * @brief Set physics simulation quality
-     * @param quality Quality factor (0.0 to 1.0)
-     */
-    void setPhysicsQuality(float quality);
-    
-    /**
-     * @brief Get physics simulation quality
-     * @return Current quality factor
-     */
-    float getPhysicsQuality() const;
-    
-    /**
-     * @brief Pause or resume physics simulation
-     * @param paused true to pause, false to resume
-     */
-    void setPhysicsPaused(bool paused);
-    
-    /**
-     * @brief Set physics time scale
-     * @param scale Time scale factor (1.0 = normal speed)
-     */
-    void setPhysicsTimeScale(float scale);
-
-    // ========== Resource Control ==========
-    
-    /**
-     * @brief Create procedural mesh resources
-     * @param name Resource name
-     * @param size/radius/width/height Mesh dimensions
-     * @return Resource handle
-     */
-    uint64_t createCubeMesh(const std::string& name = "Cube", float size = 1.0f);
-    uint64_t createSphereMesh(const std::string& name = "Sphere", 
-                              float radius = 1.0f, int segments = 32);
-    uint64_t createPlaneMesh(const std::string& name = "Plane",
-                             float width = 1.0f, float height = 1.0f);
-    
-    /**
-     * @brief Create procedural texture resources
-     * @param name Resource name
-     * @return Resource handle
-     */
-    uint64_t createSolidColorTexture(const std::string& name,
-                                     uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
-    uint64_t createCheckerboardTexture(const std::string& name,
-                                       uint32_t size = 256, uint32_t checkSize = 32);
-    
-    /**
-     * @brief Load resources from files
-     * @param name Resource name
-     * @param filepath Path to resource file
-     * @return Resource handle
-     */
-    uint64_t loadModel(const std::string& name, const std::string& filepath);
-    uint64_t loadTexture(const std::string& name, const std::string& filepath);
-    
-    /**
-     * @brief Remove resources
-     */
-    void removeResource(const std::string& name);
-    void removeResource(uint64_t handle);
-    void clearAllResources();
-    
-    /**
-     * @brief Check if resource exists
-     */
-    bool hasResource(const std::string& name) const;
-    bool hasResource(uint64_t handle) const;
-    
-    /**
-     * @brief Get resource statistics
-     */
-    size_t getResourceCount() const;
-    size_t getResourceMemoryUsed() const;
-    size_t getResourceGPUMemoryUsed() const;
-    void printResourceStatistics() const;
+    // ========== Removed Forwarding Methods ==========
+    // All input, physics, and resource forwarding methods removed.
+    // Use direct system access pattern instead.
 
 private:
     /**

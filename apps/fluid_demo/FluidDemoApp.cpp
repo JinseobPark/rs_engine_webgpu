@@ -1,9 +1,15 @@
 #include "FluidDemoApp.h"
 #include "engine/core/Config.h"
+#include "engine/systems/rendering/RenderSystem.h"
+#include "engine/systems/physics/PhysicsSystem.h"
+#include "engine/rendering/scene/Scene.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
+
+using rs_engine::RenderSystem;
+using rs_engine::PhysicsSystem;
 
 FluidDemoApp::FluidDemoApp() {
     std::cout << "[INFO] Creating Fluid Demo App..." << std::endl;
@@ -17,6 +23,15 @@ bool FluidDemoApp::init() {
     // Initialize engine (systems added automatically)
     if (!engine.initialize()) {
         std::cerr << "[ERROR] Failed to initialize engine" << std::endl;
+        return false;
+    }
+
+    // Cache system references
+    renderSystem = engine.getSystem<RenderSystem>();
+    physicsSystem = engine.getSystem<PhysicsSystem>();
+    
+    if (!renderSystem || !physicsSystem) {
+        std::cerr << "[ERROR] Required systems not found!" << std::endl;
         return false;
     }
 
@@ -39,15 +54,20 @@ bool FluidDemoApp::init() {
 }
 
 void FluidDemoApp::setupScene() {
-    // Setup camera for fluid viewing
-    engine.setCameraPosition(rs_engine::Vec3(0.0f, 5.0f, 10.0f));
-    engine.setCameraTarget(rs_engine::Vec3(0.0f, 0.0f, 0.0f));
-    engine.setCameraFOV(60.0f);
+    // Setup camera for fluid viewing (direct access)
+    auto* scene = renderSystem->getScene();
+    if (scene) {
+        auto* camera = scene->getCamera();
+        if (camera) {
+            camera->setPosition(rs_engine::Vec3(0.0f, 5.0f, 10.0f));
+            camera->setTarget(rs_engine::Vec3(0.0f, 0.0f, 0.0f));
+            camera->setFOV(60.0f);
+            std::cout << "   [INFO] Camera positioned for fluid demo" << std::endl;
+        }
+    }
     
-    // Set physics quality
-    engine.setPhysicsQuality(1.0f);
-    
-    std::cout << "   [INFO] Camera positioned for fluid demo" << std::endl;
+    // Set physics quality (direct access)
+    physicsSystem->setQuality(1.0f);
     std::cout << "   [INFO] Physics quality set to 1.0" << std::endl;
 }
 
