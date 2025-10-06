@@ -32,7 +32,8 @@ namespace rendering {
 class CameraController {
 public:
     enum class Mode {
-        Trackball,    // Default: Spherical rotation (like 3D modeling tools)
+        RSEngine,     // Default: Maya-style combined rotation (like old RSCamera)
+        Trackball,    // Spherical rotation (like 3D modeling tools)
         Orbit,        // Cylindrical rotation (horizontal + vertical)
         FirstPerson,  // FPS-style movement
         Free          // Free-flying camera
@@ -43,7 +44,7 @@ private:
     rendering::Camera* camera = nullptr;
     
     // Current mode
-    Mode currentMode = Mode::Trackball;
+    Mode currentMode = Mode::RSEngine;
     
     // Trackball/Orbit parameters (Quaternion-based)
     Vec3 target;                    // Look-at target point
@@ -103,6 +104,7 @@ public:
     void reset();
 
 private:
+    void updateRSEngine(float deltaTime);
     void updateTrackball(float deltaTime);
     void updateOrbit(float deltaTime);
     void updateFirstPerson(float deltaTime);

@@ -7,7 +7,7 @@ namespace rs_engine {
 void CameraController::init(InputSystem* inputSys, rendering::Camera* cam) {
     inputSystem = inputSys;
     camera = cam;
-    currentMode = Mode::Trackball;
+    currentMode = Mode::RSEngine;
     
     // Default target and distance
     target = Vec3(0.0f, 0.0f, 0.0f);
@@ -42,6 +42,9 @@ void CameraController::update(float deltaTime) {
     if (!camera || !inputSystem) return;
     
     switch (currentMode) {
+        case Mode::RSEngine:
+            updateRSEngine(deltaTime);
+            break;
         case Mode::Trackball:
             updateTrackball(deltaTime);
             break;
@@ -90,6 +93,87 @@ void CameraController::reset() {
         camera->setPosition(initialPosition);
         camera->lookAt(initialPosition, target, Vec3(0.0f, 1.0f, 0.0f));
     }
+}
+
+void CameraController::updateRSEngine(float deltaTime) {
+    // RSEngine Mode: Maya-style camera control (like old RSCamera)
+    // - Combined quaternion rotation (up + right)
+    // - Camera and target rotate together around target pivot
+    // - Intuitive for 3D content creation
+    
+    // Right mouse button: Pan (move camera and target together)
+    if (inputSystem->isMouseButtonDown(MouseButton::Right)) {
+        double dx, dy;
+        inputSystem->getMouseDelta(dx, dy);
+        
+        Vec3 right = orientation.getRight();
+        Vec3 up = orientation.getUp();
+        
+        Vec3 panOffset = right * (static_cast<float>(dx) * panSpeed * distance * 0.001f) + 
+                         up * (-static_cast<float>(dy) * panSpeed * distance * 0.001f);
+        
+        // Maya-style: Move camera and target together
+        Vec3 cameraPos = camera->getPosition();
+        camera->setPosition(cameraPos + panOffset);
+        target = target + panOffset;
+    }
+    
+    // Middle mouse button: Maya-style combined rotation
+    if (inputSystem->isMouseButtonDown(MouseButton::Middle)) {
+        double dx, dy;
+        inputSystem->getMouseDelta(dx, dy);
+        
+        // Calculate rotation axes from current view
+        Vec3 direction = (target - camera->getPosition()).normalize();
+        Vec3 viewUp = orientation.getUp();  // Use current up vector
+        Vec3 right = direction.cross(viewUp).normalize();
+        
+        // Maya-style: Combined rotation (up first, then right)
+        // This matches the original RSCamera::Rotate implementation
+        Quat rotationAroundUp = Quat::fromAxisAngle(
+            viewUp, 
+            static_cast<float>(dx) * rotationSpeed * 0.01f
+        );
+        Quat rotationAroundRight = Quat::fromAxisAngle(
+            right, 
+            static_cast<float>(dy) * rotationSpeed * 0.01f
+        );
+        
+        // Combined rotation: note the order (matches original code)
+        Quat combinedRotation = rotationAroundUp * rotationAroundRight;
+        
+        // Rotate camera around target (rotate_axis_ in original code)
+        Vec3 cameraPos = camera->getPosition();
+        Vec3 relativePos = cameraPos - target;
+        Vec3 newPosition = target + combinedRotation.rotate(relativePos);
+        camera->setPosition(newPosition);
+        
+        // Update orientation
+        orientation = combinedRotation * orientation;
+        orientation = orientation.normalize();
+        
+        // Recalculate distance
+        distance = (newPosition - target).length();
+    }
+    
+    // Mouse wheel: Zoom (move camera towards/away from target)
+    float scrollDelta = inputSystem->getMouseScrollDelta();
+    if (std::abs(scrollDelta) > 0.001f) {
+        Vec3 cameraPos = camera->getPosition();
+        Vec3 toTarget = (target - cameraPos).normalize();
+        Vec3 movement = toTarget * scrollDelta * zoomSpeed * 0.1f;
+        
+        Vec3 newPosition = cameraPos + movement;
+        camera->setPosition(newPosition);
+        
+        // Update distance and orientation
+        distance = (target - newPosition).length();
+        Vec3 newDirection = (target - newPosition).normalize();
+        Vec3 up = Vec3(0.0f, 1.0f, 0.0f);
+        orientation = Quat::lookRotation(newDirection, up);
+    }
+    
+    camera->lookAt(camera->getPosition(), target, Vec3(0.0f, 1.0f, 0.0f));
 }
 
 void CameraController::updateTrackball(float deltaTime) {
