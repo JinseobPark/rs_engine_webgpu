@@ -338,8 +338,57 @@ void ImGuiManager::showSceneDebugger() {
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Camera")) {
-        ImGui::Text("Camera controls will be added here");
-        // TODO: Add camera position, rotation, etc.
+        // Get camera and controller through RenderSystem
+        rendering::Camera* camera = nullptr;
+        CameraController* controller = nullptr;
+        
+        if (m_renderSystem) {
+            camera = m_renderSystem->getCamera();
+            auto* inputSystem = m_renderSystem->getInputSystem();
+            if (inputSystem) {
+                controller = inputSystem->getCameraController();
+            }
+        }
+        
+        if (camera) {
+            // Camera Position
+            Vec3 position = camera->getPosition();
+            ImGui::Text("Position:");
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), 
+                             "(%.2f, %.2f, %.2f)", position.x, position.y, position.z);
+            
+            // Camera Up Vector
+            Vec3 up = camera->getUp();
+            ImGui::Text("Up:      ");
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f),
+                             "(%.2f, %.2f, %.2f)", up.x, up.y, up.z);
+            
+            // Camera Target (from camera)
+            Vec3 target = camera->getTarget();
+            ImGui::Text("Target:  ");
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f),
+                             "(%.2f, %.2f, %.2f)", target.x, target.y, target.z);
+            
+            // Distance to target (if controller available)
+            if (controller) {
+                float distance = controller->getDistance();
+                ImGui::Text("Distance:");
+                ImGui::SameLine();
+                ImGui::Text("%.2f", distance);
+            }
+            
+            ImGui::Separator();
+            
+            // Camera parameters
+            ImGui::Text("FOV: %.1f°", camera->getFOV());
+            ImGui::Text("Near: %.2f", camera->getNearPlane());
+            ImGui::Text("Far: %.1f", camera->getFarPlane());
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Camera not available");
+        }
     }
 
     if (ImGui::CollapsingHeader("Objects")) {
@@ -693,10 +742,17 @@ void ImGuiManager::showHierarchy() {
 
     // Scene tree structure
     if (ImGui::TreeNode("Scene")) {
-        if (ImGui::TreeNode("Main Camera")) {
-            ImGui::Text("Transform");
-            ImGui::Text("Camera Component");
-            ImGui::TreePop();
+        // Main Camera - selectable
+        ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        if (m_selectedObjectType == SelectedObjectType::Camera) {
+            node_flags |= ImGuiTreeNodeFlags_Selected;
+        }
+        
+        if (ImGui::TreeNodeEx("Main Camera", node_flags)) {
+            if (ImGui::IsItemClicked()) {
+                m_selectedObjectType = SelectedObjectType::Camera;
+                m_selectedObjectIndex = -1;
+            }
         }
         
         if (ImGui::TreeNode("Lighting")) {
@@ -739,48 +795,209 @@ void ImGuiManager::showInspector() {
     ImGui::Text("Object Inspector");
     ImGui::Separator();
 
-    // Object properties (example)
-    static char objectName[128] = "Selected Object";
-    ImGui::InputText("Name", objectName, sizeof(objectName));
-    
-    ImGui::Checkbox("Active", &m_showInspector); // Placeholder
-    
-    ImGui::Separator();
-    
-    // Transform component
-    if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-        static float position[3] = {0.0f, 0.0f, 0.0f};
-        static float rotation[3] = {0.0f, 0.0f, 0.0f};
-        static float scale[3] = {1.0f, 1.0f, 1.0f};
+    // Display different content based on selected object
+    if (m_selectedObjectType == SelectedObjectType::Camera) {
+        // Camera Inspector
+        ImGui::Text("Main Camera");
+        ImGui::Checkbox("Active", &m_showInspector); // Placeholder
         
-        ImGui::DragFloat3("Position", position, 0.1f);
-        ImGui::DragFloat3("Rotation", rotation, 1.0f);
-        ImGui::DragFloat3("Scale", scale, 0.1f);
-    }
-    
-    // Mesh Renderer component
-    if (ImGui::CollapsingHeader("Mesh Renderer")) {
-        static int materialSlot = 0;
-        ImGui::Combo("Material", &materialSlot, "Default\0Metal\0Wood\0Glass\0");
+        ImGui::Separator();
         
-        static bool castShadows = true;
-        static bool receiveShadows = true;
-        ImGui::Checkbox("Cast Shadows", &castShadows);
-        ImGui::Checkbox("Receive Shadows", &receiveShadows);
-    }
-    
-    // Add Component button
-    ImGui::Separator();
-    if (ImGui::Button("Add Component")) {
-        ImGui::OpenPopup("ComponentMenu");
-    }
-    
-    if (ImGui::BeginPopup("ComponentMenu")) {
-        if (ImGui::MenuItem("Rigidbody")) {}
-        if (ImGui::MenuItem("Collider")) {}
-        if (ImGui::MenuItem("Light")) {}
-        if (ImGui::MenuItem("Camera")) {}
-        ImGui::EndPopup();
+        // Get camera and controller through RenderSystem
+        rendering::Camera* camera = nullptr;
+        CameraController* controller = nullptr;
+        
+        if (m_renderSystem) {
+            camera = m_renderSystem->getCamera();
+            auto* inputSystem = m_renderSystem->getInputSystem();
+            if (inputSystem) {
+                controller = inputSystem->getCameraController();
+            }
+        }
+        
+        // Transform component
+        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (camera) {
+                // Position - editable
+                Vec3 position = camera->getPosition();
+                float pos[3] = {position.x, position.y, position.z};
+                ImGui::Text("Position:");
+                if (ImGui::DragFloat3("##Position", pos, 0.1f)) {
+                    camera->setPosition(Vec3(pos[0], pos[1], pos[2]));
+                    if (controller) {
+                        // Recalculate distance when position changes
+                        Vec3 newTarget = camera->getTarget();
+                        float newDistance = (Vec3(pos[0], pos[1], pos[2]) - newTarget).length();
+                        controller->setDistance(newDistance);
+                    }
+                }
+                
+                ImGui::Separator();
+                
+                // Target - editable
+                Vec3 target = camera->getTarget();
+                float tgt[3] = {target.x, target.y, target.z};
+                ImGui::Text("Target:");
+                if (ImGui::DragFloat3("##Target", tgt, 0.1f)) {
+                    Vec3 newTarget(tgt[0], tgt[1], tgt[2]);
+                    camera->setTarget(newTarget);
+                    if (controller) {
+                        controller->setTarget(newTarget);
+                        // Recalculate distance
+                        Vec3 currentPos = camera->getPosition();
+                        float newDistance = (currentPos - newTarget).length();
+                        controller->setDistance(newDistance);
+                    }
+                    // Update camera's lookAt
+                    camera->lookAt(camera->getPosition(), newTarget, camera->getUp());
+                }
+                
+                ImGui::Separator();
+                
+                // Up Vector - editable
+                Vec3 up = camera->getUp();
+                float upVec[3] = {up.x, up.y, up.z};
+                ImGui::Text("Up Vector:");
+                if (ImGui::DragFloat3("##UpVector", upVec, 0.01f)) {
+                    Vec3 newUp(upVec[0], upVec[1], upVec[2]);
+                    // Normalize up vector
+                    float length = std::sqrt(newUp.x * newUp.x + newUp.y * newUp.y + newUp.z * newUp.z);
+                    if (length > 0.001f) {
+                        newUp = Vec3(newUp.x / length, newUp.y / length, newUp.z / length);
+                    }
+                    camera->setUp(newUp);
+                    camera->lookAt(camera->getPosition(), camera->getTarget(), newUp);
+                }
+            } else {
+                ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Camera not available");
+            }
+        }
+        
+        // Camera component
+        if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (camera) {
+                // Field of View - editable
+                float fov = camera->getFOV();
+                if (ImGui::SliderFloat("Field of View (°)", &fov, 30.0f, 120.0f, "%.1f")) {
+                    camera->setFOV(fov);
+                }
+                
+                // Near Plane - editable
+                float nearPlane = camera->getNearPlane();
+                float farPlane = camera->getFarPlane();
+                if (ImGui::DragFloat("Near Plane", &nearPlane, 0.01f, 0.01f, farPlane - 0.1f, "%.2f")) {
+                    camera->setPerspective(camera->getFOVRadians(), camera->getAspectRatio(), nearPlane, farPlane);
+                }
+                
+                // Far Plane - editable
+                if (ImGui::DragFloat("Far Plane", &farPlane, 1.0f, nearPlane + 0.1f, 1000.0f, "%.1f")) {
+                    camera->setPerspective(camera->getFOVRadians(), camera->getAspectRatio(), nearPlane, farPlane);
+                }
+                
+                // Aspect Ratio - read only (controlled by window size)
+                float aspect = camera->getAspectRatio();
+                ImGui::Text("Aspect Ratio: %.2f (auto)", aspect);
+                
+                ImGui::Separator();
+                
+                if (controller) {
+                    // Distance to Target - editable
+                    float distance = controller->getDistance();
+                    if (ImGui::DragFloat("Distance to Target", &distance, 0.1f, 0.5f, 100.0f, "%.2f")) {
+                        controller->setDistance(distance);
+                        // Update camera position based on new distance
+                        Vec3 target = controller->getTarget();
+                        Vec3 direction = (camera->getPosition() - target).normalize();
+                        camera->setPosition(target + direction * distance);
+                    }
+                    
+                    ImGui::Separator();
+                    
+                    // Camera mode - editable via dropdown
+                    const char* modes[] = { "RSEngine", "Trackball", "Orbit", "First Person", "Free" };
+                    int currentMode = static_cast<int>(controller->getMode());
+                    if (ImGui::Combo("Controller Mode", &currentMode, modes, 5)) {
+                        controller->setMode(static_cast<CameraController::Mode>(currentMode));
+                    }
+                    
+                    // Controller speeds
+                    ImGui::Separator();
+                    ImGui::Text("Controller Settings:");
+                    
+                    float panSpeed = controller->getPanSpeed();
+                    if (ImGui::SliderFloat("Pan Speed", &panSpeed, 0.1f, 5.0f, "%.1f")) {
+                        controller->setPanSpeed(panSpeed);
+                    }
+                    
+                    float rotSpeed = controller->getRotationSpeed();
+                    if (ImGui::SliderFloat("Rotation Speed", &rotSpeed, 0.1f, 2.0f, "%.2f")) {
+                        controller->setRotationSpeed(rotSpeed);
+                    }
+                    
+                    float zoomSpeed = controller->getZoomSpeed();
+                    if (ImGui::SliderFloat("Zoom Speed", &zoomSpeed, 0.1f, 5.0f, "%.1f")) {
+                        controller->setZoomSpeed(zoomSpeed);
+                    }
+                    
+                    // Reset button
+                    ImGui::Separator();
+                    if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) {
+                        controller->reset();
+                    }
+                }
+            }
+        }
+        
+    } else if (m_selectedObjectType == SelectedObjectType::None) {
+        // No selection
+        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No object selected");
+        ImGui::Separator();
+        ImGui::TextWrapped("Select an object from the Hierarchy to view its properties.");
+        
+    } else {
+        // Other objects (generic placeholder)
+        static char objectName[128] = "Selected Object";
+        ImGui::InputText("Name", objectName, sizeof(objectName));
+        
+        ImGui::Checkbox("Active", &m_showInspector); // Placeholder
+        
+        ImGui::Separator();
+        
+        // Transform component
+        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+            static float position[3] = {0.0f, 0.0f, 0.0f};
+            static float rotation[3] = {0.0f, 0.0f, 0.0f};
+            static float scale[3] = {1.0f, 1.0f, 1.0f};
+            
+            ImGui::DragFloat3("Position", position, 0.1f);
+            ImGui::DragFloat3("Rotation", rotation, 1.0f);
+            ImGui::DragFloat3("Scale", scale, 0.1f);
+        }
+        
+        // Mesh Renderer component
+        if (ImGui::CollapsingHeader("Mesh Renderer")) {
+            static int materialSlot = 0;
+            ImGui::Combo("Material", &materialSlot, "Default\0Metal\0Wood\0Glass\0");
+            
+            static bool castShadows = true;
+            static bool receiveShadows = true;
+            ImGui::Checkbox("Cast Shadows", &castShadows);
+            ImGui::Checkbox("Receive Shadows", &receiveShadows);
+        }
+        
+        // Add Component button
+        ImGui::Separator();
+        if (ImGui::Button("Add Component")) {
+            ImGui::OpenPopup("ComponentMenu");
+        }
+        
+        if (ImGui::BeginPopup("ComponentMenu")) {
+            if (ImGui::MenuItem("Rigidbody")) {}
+            if (ImGui::MenuItem("Collider")) {}
+            if (ImGui::MenuItem("Light")) {}
+            if (ImGui::MenuItem("Camera")) {}
+            ImGui::EndPopup();
+        }
     }
 
     ImGui::End();

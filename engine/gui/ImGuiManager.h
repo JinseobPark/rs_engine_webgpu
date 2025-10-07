@@ -82,6 +82,16 @@ private:
 
     // Scene texture binding for ImGui
     void* m_sceneTextureID = nullptr;
+    
+    // Selected object tracking
+    enum class SelectedObjectType {
+        None,
+        Camera,
+        Light,
+        Cube
+    };
+    SelectedObjectType m_selectedObjectType = SelectedObjectType::None;
+    int m_selectedObjectIndex = -1;  // For cubes: 0, 1, 2
 };
 
 } // namespace gui
