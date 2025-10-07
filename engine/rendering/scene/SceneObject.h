@@ -61,7 +61,7 @@ public:
 
     // ========== Animation ==========
     
-    void update(float deltaTime) { animationTime += deltaTime; }
+    void update(float deltaTime) { /* animationTime += deltaTime; */ }
     float getAnimationTime() const { return animationTime; }
     void setAnimationTime(float time) { animationTime = time; }
 

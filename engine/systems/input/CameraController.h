@@ -46,19 +46,15 @@ private:
     // Current mode
     Mode currentMode = Mode::RSEngine;
     
-    // Trackball/Orbit parameters (Quaternion-based)
-    Vec3 target;                    // Look-at target point
-    float distance;                 // Distance from target
-    Quat orientation;               // Camera orientation (no gimbal lock!)
-    
     // FirstPerson/Free parameters (Quaternion-based)
+    // This is the ONLY orientation state we store, used exclusively for FPS/Free modes
     Quat firstPersonOrientation;    // FPS camera orientation
     
-    // Initial state for reset
-    Vec3 initialPosition;           // Initial camera position
-    Vec3 initialTarget;             // Initial target position
-    float initialDistance;          // Initial distance
-    Quat initialOrientation;        // Initial orientation
+    // Rotation axis for RS Engine mode
+    Vec3 rotateAxis = Vec3(0.0f, 0.0f, 0.0f);
+    
+    // Focal length (RSCamera style)
+    float focalLength = 10.0f;
     
     // Control parameters
     float panSpeed = 1.0f;
@@ -82,10 +78,11 @@ public:
     
     // Target control (for Trackball/Orbit)
     void setTarget(const Vec3& newTarget);
-    Vec3 getTarget() const { return target; }
+    Vec3 getTarget() const;
     
+    // Distance is computed from camera position and target
+    float getDistance() const;
     void setDistance(float dist);
-    float getDistance() const { return distance; }
     
     // Speed/sensitivity settings
     void setPanSpeed(float speed) { panSpeed = speed; }
@@ -109,6 +106,12 @@ private:
     void updateOrbit(float deltaTime);
     void updateFirstPerson(float deltaTime);
     void updateFree(float deltaTime);
+    
+    // Helper methods to compute orientation when needed
+    Quat getCurrentOrientation() const;
+    
+    // RSCamera style: Orthogonalize up vector after rotation
+    void updateCameraVectors();
 };
 
 } // namespace rs_engine

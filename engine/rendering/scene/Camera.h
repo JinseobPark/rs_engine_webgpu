@@ -14,6 +14,11 @@ private:
     Vec3 target;
     Vec3 up;
     
+    // Initial state for reset
+    Vec3 initialPosition;
+    Vec3 initialTarget;
+    Vec3 initialUp;
+    
     float fov;      // Field of view in radians
     float aspect;   // Aspect ratio
     float nearPlane;
@@ -56,6 +61,12 @@ public:
 
     // Update camera (call this if you modify position/target directly)
     void update();
+    
+    // Reset camera to initial state
+    void reset();
+    
+    // Save current state as initial (for reset)
+    void saveInitialState();
 
 private:
     void updateViewMatrix() const;

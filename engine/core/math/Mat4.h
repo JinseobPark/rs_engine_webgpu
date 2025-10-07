@@ -201,15 +201,27 @@ struct Mat4 {
         return result;
     }
 
+    /**
+     * @brief Create perspective projection matrix for WebGPU
+     * 
+     * WebGPU uses NDC depth range [0, 1] (unlike OpenGL's [-1, 1])
+     * See: https://www.w3.org/TR/webgpu/#coordinate-systems
+     * 
+     * @param fov Field of view in radians
+     * @param aspect Aspect ratio (width/height)
+     * @param near Near clipping plane distance
+     * @param far Far clipping plane distance
+     */
     static Mat4 perspective(float fov, float aspect, float near, float far) {
         Mat4 result;
         float tanHalfFov = std::tan(fov * 0.5f);
 
         result.m[0] = 1.0f / (aspect * tanHalfFov);
         result.m[5] = 1.0f / tanHalfFov;
-        result.m[10] = -(far + near) / (far - near);
+        // WebGPU: Z maps to [0, 1] instead of OpenGL's [-1, 1]
+        result.m[10] = -far / (far - near);  // WebGPU depth range
         result.m[11] = -1.0f;
-        result.m[14] = -(2.0f * far * near) / (far - near);
+        result.m[14] = -(far * near) / (far - near);  // WebGPU depth range
         result.m[15] = 0.0f;
 
         for (int i = 1; i < 5; ++i) if (i != 1) result.m[i] = 0.0f;

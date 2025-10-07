@@ -122,7 +122,7 @@ void InputSystem::getMousePosition(double& x, double& y) const {
 
 void InputSystem::getMouseDelta(double& dx, double& dy) const {
     dx = mouseDeltaX;
-    dy = -mouseDeltaY;
+    dy = mouseDeltaY;
 }
 
 void InputSystem::getScrollDelta(double& dx, double& dy) const {
@@ -363,9 +363,9 @@ void InputSystem::initializeCameraController(rendering::Camera* camera) {
     cameraController->init(this, camera);
     cameraController->setMode(CameraController::Mode::RSEngine);
     cameraController->setTarget(Vec3(0.0f, 0.0f, 0.0f));
-    
+
     std::cout << "[InputSystem] Camera controller initialized (RSEngine mode)" << std::endl;
-    
+
 #ifdef __EMSCRIPTEN__
     // Setup Web event handlers
     setupWebEventHandlers();

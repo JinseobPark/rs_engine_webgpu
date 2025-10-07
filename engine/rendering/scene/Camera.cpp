@@ -6,6 +6,7 @@ namespace rendering {
 
 Camera::Camera(float fov, float aspect, float near, float far)
     : position(0, 0, 5), target(0, 0, 0), up(0, 1, 0)
+    , initialPosition(0, 0, 5), initialTarget(0, 0, 0), initialUp(0, 1, 0)
     , fov(fov), aspect(aspect), nearPlane(near), farPlane(far)
     , viewDirty(true), projDirty(true) {
 }
@@ -86,6 +87,21 @@ void Camera::updateViewMatrix() const {
 void Camera::updateProjectionMatrix() const {
     projectionMatrix = Mat4::perspective(fov, aspect, nearPlane, farPlane);
     projDirty = false;
+}
+
+void Camera::reset() {
+    // Restore initial state
+    position = initialPosition;
+    target = initialTarget;
+    up = initialUp;
+    viewDirty = true;
+}
+
+void Camera::saveInitialState() {
+    // Save current state as initial
+    initialPosition = position;
+    initialTarget = target;
+    initialUp = up;
 }
 
 } // namespace rendering

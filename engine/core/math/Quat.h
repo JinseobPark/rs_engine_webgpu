@@ -69,8 +69,14 @@ public:
     
     /**
      * @brief Create quaternion looking from eye to target
-     * @param forward Forward direction (should be normalized)
-     * @param up Up direction (should be normalized)
+     * 
+     * Uses right-handed coordinate system (WebGPU convention):
+     * - Forward: -Z axis (into the screen)
+     * - Right: +X axis
+     * - Up: +Y axis
+     * 
+     * @param forward Forward direction (should be normalized, -Z is forward)
+     * @param up Up direction (should be normalized, typically +Y)
      */
     static Quat lookRotation(const Vec3& forward, const Vec3& up) {
         Vec3 f = forward.normalize();
@@ -207,6 +213,9 @@ public:
     
     /**
      * @brief Get forward direction vector (-Z axis after rotation)
+     * 
+     * In WebGPU/right-handed coordinates, -Z points forward (into screen)
+     * This matches the convention used by lookAt and perspective projection
      */
     Vec3 getForward() const {
         return Vec3(
