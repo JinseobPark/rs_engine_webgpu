@@ -28,9 +28,9 @@ namespace rs_engine {
  * - Main loop using Engine::shouldClose()
  */
 class SeobJJangApp {
-private:
+public: // Make systems public for JS API access
     rs_engine::Engine engine;
-    
+
     // Cached system references (initialized in init())
     rs_engine::RenderSystem* renderSystem = nullptr;
     rs_engine::ResourceSystem* resourceSystem = nullptr;

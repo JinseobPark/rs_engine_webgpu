@@ -618,29 +618,305 @@
             });
         }
 
-        // Tree Item Selection
-        function initializeTreeSelection() {
-            const treeItems = document.querySelectorAll('.tree-item');
-            
-            treeItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    // Remove selection from all items
-                    treeItems.forEach(i => i.classList.remove('selected'));
-                    // Add selection to clicked item
-                    item.classList.add('selected');
-                    
-                    // Update inspector based on selection
-                    updateInspector(item.textContent.trim());
-                });
-            });
+        // Tree Item Selection - disabled, now handled by engine integration
+
+        // ========== Engine Data Integration ==========
+
+        // State tracking
+        let currentSelectedType = 'none'; // 'camera', 'object', 'none'
+        let currentSelectedName = '';
+        let hierarchyInitialized = false;
+        let lastHierarchyUpdate = 0;
+        let lastEngineSelectedName = ''; // Track engine selection state
+
+        // Update camera inspector with real data from engine
+        function updateCameraInspector() {
+            if (!Module || !Module.getCameraInfo) {
+                return;
+            }
+
+            try {
+                const cameraInfo = Module.getCameraInfo();
+
+                // Find inspector panel
+                const inspectorPanel = document.querySelector('.right-sidebar .panel:first-child .panel-content');
+                if (!inspectorPanel) return;
+
+                // Update inspector content for camera
+                inspectorPanel.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #4CAF50;">Main Camera</div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-weight: 500; margin-bottom: 4px; color: #e0e0e0;">Transform</div>
+                        <div class="property-row">
+                            <span class="property-label">Position</span>
+                            <input class="property-value" type="text" value="${cameraInfo.posX.toFixed(2)}, ${cameraInfo.posY.toFixed(2)}, ${cameraInfo.posZ.toFixed(2)}" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Target</span>
+                            <input class="property-value" type="text" value="${cameraInfo.targetX.toFixed(2)}, ${cameraInfo.targetY.toFixed(2)}, ${cameraInfo.targetZ.toFixed(2)}" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Up Vector</span>
+                            <input class="property-value" type="text" value="${cameraInfo.upX.toFixed(2)}, ${cameraInfo.upY.toFixed(2)}, ${cameraInfo.upZ.toFixed(2)}" readonly>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-weight: 500; margin-bottom: 4px; color: #e0e0e0;">Camera Settings</div>
+                        <div class="property-row">
+                            <span class="property-label">FOV</span>
+                            <input class="property-value" type="text" value="${cameraInfo.fov.toFixed(1)}°" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Near Plane</span>
+                            <input class="property-value" type="text" value="${cameraInfo.nearPlane.toFixed(2)}" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Far Plane</span>
+                            <input class="property-value" type="text" value="${cameraInfo.farPlane.toFixed(1)}" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Aspect Ratio</span>
+                            <input class="property-value" type="text" value="${cameraInfo.aspectRatio.toFixed(2)}" readonly>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                console.error('Error updating camera inspector:', e);
+            }
         }
 
-        // Inspector Update
-        function updateInspector(selectedItem) {
-            const inspectorTitle = document.querySelector('.right-sidebar .panel-content div');
-            if (inspectorTitle) {
-                inspectorTitle.textContent = selectedItem;
+        // Update hierarchy with real objects from scene (only once)
+        function initializeHierarchy() {
+            if (!Module || !Module.getObjectNames || !Module.getObjectCount) {
+                return false;
             }
+
+            try {
+                const objectCount = Module.getObjectCount();
+                const objectNames = Module.getObjectNames();
+
+                // Update hierarchy tree
+                const hierarchyPanel = document.querySelector('.panel-content');
+                if (!hierarchyPanel) return false;
+
+                // Keep only the scene root and camera, clear rest
+                const existingItems = hierarchyPanel.querySelectorAll('.tree-item');
+                for (let i = 2; i < existingItems.length; i++) {
+                    existingItems[i].remove();
+                }
+
+                // Add camera click handler
+                const cameraItem = hierarchyPanel.querySelector('.tree-item:nth-child(2)');
+                if (cameraItem) {
+                    cameraItem.addEventListener('click', () => {
+                        document.querySelectorAll('.tree-item').forEach(item => item.classList.remove('selected'));
+                        cameraItem.classList.add('selected');
+                        currentSelectedType = 'camera';
+                        currentSelectedName = 'camera';
+
+                        // Clear engine selection when camera is selected
+                        if (Module && Module.selectObjectByName) {
+                            Module.selectObjectByName('');
+                            lastEngineSelectedName = '';
+                        }
+
+                        updateCameraInspector();
+                    });
+                }
+
+                // Add objects from scene
+                for (let i = 0; i < objectNames.size(); i++) {
+                    const name = objectNames.get(i);
+                    const newItem = document.createElement('div');
+                    newItem.className = 'tree-item';
+                    newItem.style.paddingLeft = '20px';
+                    newItem.innerHTML = `
+                        <span class="tree-icon">🧊</span>
+                        <span>${name}</span>
+                    `;
+
+                    newItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        document.querySelectorAll('.tree-item').forEach(item => item.classList.remove('selected'));
+                        newItem.classList.add('selected');
+                        currentSelectedType = 'object';
+                        currentSelectedName = name;
+
+                        // Sync selection to engine
+                        if (Module && Module.selectObjectByName) {
+                            Module.selectObjectByName(name);
+                            lastEngineSelectedName = name;
+                            console.log(`[GUI->Engine] Selecting: ${name}`);
+                        }
+
+                        updateObjectInspector(name);
+                    });
+
+                    hierarchyPanel.appendChild(newItem);
+                }
+
+                // Update object count in status bar
+                updateStatusBar('Ready', `Objects: ${objectCount}`);
+
+                console.log(`[GUI] Initialized hierarchy with ${objectCount} objects`);
+                return true;
+            } catch (e) {
+                console.error('Error initializing hierarchy:', e);
+                return false;
+            }
+        }
+
+        // Update inspector with real object data
+        function updateObjectInspector(objectName) {
+            if (!Module || !Module.getObjectInfo) {
+                return;
+            }
+
+            try {
+                const objInfo = Module.getObjectInfo(objectName);
+
+                // Find inspector panel
+                const inspectorPanel = document.querySelector('.right-sidebar .panel:first-child .panel-content');
+                if (!inspectorPanel) return;
+
+                // Convert radians to degrees for rotation
+                const rotXDeg = (objInfo.rotX * 180 / Math.PI).toFixed(1);
+                const rotYDeg = (objInfo.rotY * 180 / Math.PI).toFixed(1);
+                const rotZDeg = (objInfo.rotZ * 180 / Math.PI).toFixed(1);
+
+                // Update inspector content for object
+                inspectorPanel.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #4CAF50;">${objInfo.name}</div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-weight: 500; margin-bottom: 4px; color: #e0e0e0;">Transform</div>
+                        <div class="property-row">
+                            <span class="property-label">Position</span>
+                            <input class="property-value" type="text" value="${objInfo.posX.toFixed(2)}, ${objInfo.posY.toFixed(2)}, ${objInfo.posZ.toFixed(2)}" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Rotation</span>
+                            <input class="property-value" type="text" value="${rotXDeg}°, ${rotYDeg}°, ${rotZDeg}°" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Scale</span>
+                            <input class="property-value" type="text" value="${objInfo.scaleX.toFixed(2)}, ${objInfo.scaleY.toFixed(2)}, ${objInfo.scaleZ.toFixed(2)}" readonly>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-weight: 500; margin-bottom: 4px; color: #e0e0e0;">Mesh Renderer</div>
+                        <div class="property-row">
+                            <span class="property-label">Visible</span>
+                            <input class="property-value" type="text" value="${objInfo.visible ? 'Yes' : 'No'}" readonly>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Has Model</span>
+                            <input class="property-value" type="text" value="${objInfo.hasModel ? 'Yes' : 'No'}" readonly>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                console.error('Error updating object inspector:', e);
+            }
+        }
+
+        // Sync selection from engine picking system to GUI
+        function syncSelectionFromEngine() {
+            if (!Module || !Module.getSelectedObjectName) {
+                return;
+            }
+
+            try {
+                const engineSelectedName = Module.getSelectedObjectName();
+
+                // Debug: log selection state periodically
+                if (window.debugSelectionCounter === undefined) {
+                    window.debugSelectionCounter = 0;
+                }
+                window.debugSelectionCounter++;
+                if (window.debugSelectionCounter % 60 === 0) { // Every 60 frames (1 second)
+                    console.log(`[GUI Debug] Engine selection: "${engineSelectedName}", Last: "${lastEngineSelectedName}"`);
+                }
+
+                // Check if engine selection changed
+                if (engineSelectedName !== lastEngineSelectedName) {
+                    console.log(`[GUI] ⚡ Selection changed! Engine: "${engineSelectedName}" (was: "${lastEngineSelectedName}")`);
+                    lastEngineSelectedName = engineSelectedName;
+
+                    if (engineSelectedName === '') {
+                        // No selection in engine - clear GUI selection
+                        console.log('[GUI] Clearing selection');
+                        document.querySelectorAll('.tree-item').forEach(item => item.classList.remove('selected'));
+                        currentSelectedType = 'none';
+                        currentSelectedName = '';
+                    } else {
+                        // Engine has selected an object - update GUI
+                        console.log(`[GUI] Engine selected: ${engineSelectedName}`);
+
+                        // Find and select the corresponding tree item
+                        const treeItems = document.querySelectorAll('.tree-item');
+                        let found = false;
+
+                        console.log(`[GUI] Searching in ${treeItems.length} tree items...`);
+                        treeItems.forEach(item => {
+                            // Get only the text content, skip the icon
+                            const textSpan = item.querySelector('span:last-child');
+                            const itemText = textSpan ? textSpan.textContent.trim() : item.textContent.trim();
+                            console.log(`[GUI] Checking item: "${itemText}"`);
+
+                            if (itemText === engineSelectedName) {
+                                console.log(`[GUI] ✓ Found match! Selecting: ${itemText}`);
+                                // Remove selection from all
+                                treeItems.forEach(i => i.classList.remove('selected'));
+                                // Select this item
+                                item.classList.add('selected');
+                                currentSelectedType = 'object';
+                                currentSelectedName = engineSelectedName;
+                                found = true;
+
+                                // Scroll into view if needed
+                                item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
+                        });
+
+                        if (!found) {
+                            console.warn(`[GUI] ✗ Object "${engineSelectedName}" not found in hierarchy`);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error syncing selection from engine:', e);
+            }
+        }
+
+        // Main update loop for UI (60 FPS)
+        function updateEngineUI() {
+            if (!Module || !Module.getCameraInfo) {
+                // Engine not ready, try again later
+                setTimeout(updateEngineUI, 100);
+                return;
+            }
+
+            // Initialize hierarchy once
+            if (!hierarchyInitialized) {
+                hierarchyInitialized = initializeHierarchy();
+            }
+
+            // Sync selection from engine (picking system)
+            syncSelectionFromEngine();
+
+            // Update inspector based on current selection
+            if (currentSelectedType === 'camera') {
+                updateCameraInspector();
+            } else if (currentSelectedType === 'object' && currentSelectedName) {
+                updateObjectInspector(currentSelectedName);
+            }
+
+            // Continue updating at 60 FPS
+            requestAnimationFrame(updateEngineUI);
         }
 
         // Toolbar Button Handling
@@ -669,24 +945,24 @@
         }
 
         // Status Bar Update
-        function updateStatusBar(mode, fps) {
+        function updateStatusBar(mode, objectInfo) {
             const statusLeft = document.querySelector('.status-left');
             if (statusLeft) {
                 statusLeft.innerHTML = `
                     <span>${mode}</span>
                     <span>|</span>
-                    <span>Scene: TriangleDemo</span>
+                    <span>Scene: SeobJJang Demo</span>
                     <span>|</span>
-                    <span>Objects: 4</span>
+                    <span>${objectInfo || 'Objects: 0'}</span>
                 `;
             }
-            
+
             const statusRight = document.querySelector('.status-right');
             if (statusRight) {
                 statusRight.innerHTML = `
                     <span>WebGPU Active</span>
                     <span>|</span>
-                    <span>${fps}</span>
+                    <span>60 FPS</span>
                 `;
             }
         }
@@ -785,12 +1061,14 @@
         // Initialize all functionality
         document.addEventListener('DOMContentLoaded', () => {
             initializePanelToggles();
-            initializeTreeSelection();
             initializeToolbar();
             initializeResizing();
 
             // Run WebGPU diagnostics
             checkWebGPUSupport();
+
+            // Start engine UI update loop
+            setTimeout(updateEngineUI, 1000); // Wait 1s for engine to initialize
         });
 
         // Override console methods to show status
