@@ -69,19 +69,19 @@ public:
     
     /**
      * @brief Create quaternion looking from eye to target
-     * 
-     * Uses right-handed coordinate system (WebGPU convention):
-     * - Forward: -Z axis (into the screen)
+     *
+     * Uses left-handed coordinate system (WebGPU convention):
+     * - Forward: +Z axis (into the screen)
      * - Right: +X axis
      * - Up: +Y axis
-     * 
-     * @param forward Forward direction (should be normalized, -Z is forward)
+     *
+     * @param forward Forward direction (should be normalized, +Z is forward)
      * @param up Up direction (should be normalized, typically +Y)
      */
     static Quat lookRotation(const Vec3& forward, const Vec3& up) {
         Vec3 f = forward.normalize();
-        Vec3 r = up.cross(f).normalize();
-        Vec3 u = f.cross(r);
+        Vec3 r = f.cross(up).normalize();
+        Vec3 u = r.cross(f);
         
         // Build rotation matrix
         float m00 = r.x, m01 = r.y, m02 = r.z;
@@ -173,9 +173,10 @@ public:
      * @brief Rotate a vector by this quaternion
      */
     Vec3 rotate(const Vec3& v) const {
+        Quat q = normalize();
         // q * v * q^-1
         Quat p(0.0f, v.x, v.y, v.z);
-        Quat result = (*this) * p * conjugate();
+        Quat result = q * p * q.conjugate();
         return Vec3(result.x, result.y, result.z);
     }
     
@@ -212,9 +213,9 @@ public:
     }
     
     /**
-     * @brief Get forward direction vector (-Z axis after rotation)
-     * 
-     * In WebGPU/right-handed coordinates, -Z points forward (into screen)
+     * @brief Get forward direction vector (+Z axis after rotation)
+     *
+     * In WebGPU left-handed coordinates, +Z points forward (into screen)
      * This matches the convention used by lookAt and perspective projection
      */
     Vec3 getForward() const {
