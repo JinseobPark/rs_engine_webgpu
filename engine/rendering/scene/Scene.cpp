@@ -57,6 +57,11 @@ void Scene::render(wgpu::RenderPassEncoder& renderPass) {
         renderObject(renderPass, *object, objectIndex);
         objectIndex++;
     }
+    
+    // Render bounding box for selected object
+    if (selectedObject && selectedObject->hasModel()) {
+        renderBoundingBox(renderPass, *selectedObject);
+    }
 }
 
 // ========== Object Management ==========
@@ -146,6 +151,18 @@ bool Scene::createRenderingResources() {
         return false;
     }
     std::cout << "[SUCCESS] Scene: createRenderPipeline() succeeded" << std::endl;
+    
+    if (!createBoundingBoxPipeline()) {
+        std::cerr << "[ERROR] Scene: createBoundingBoxPipeline() failed" << std::endl;
+        return false;
+    }
+    std::cout << "[SUCCESS] Scene: createBoundingBoxPipeline() succeeded" << std::endl;
+    
+    if (!createBoundingBoxGeometry()) {
+        std::cerr << "[ERROR] Scene: createBoundingBoxGeometry() failed" << std::endl;
+        return false;
+    }
+    std::cout << "[SUCCESS] Scene: createBoundingBoxGeometry() succeeded" << std::endl;
 
     return true;
 }
@@ -264,6 +281,13 @@ bool Scene::createRenderPipeline() {
     pipelineDesc.primitive.stripIndexFormat = wgpu::IndexFormat::Undefined;
     pipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
     pipelineDesc.primitive.cullMode = wgpu::CullMode::Back;
+    
+    // Depth/stencil state
+    wgpu::DepthStencilState depthStencilState{};
+    depthStencilState.format = wgpu::TextureFormat::Depth24Plus;
+    depthStencilState.depthWriteEnabled = true;
+    depthStencilState.depthCompare = wgpu::CompareFunction::Less;
+    pipelineDesc.depthStencil = &depthStencilState;
 
     // Multisample state
     pipelineDesc.multisample.count = 1;
@@ -317,6 +341,206 @@ void Scene::renderObject(wgpu::RenderPassEncoder& renderPass,
         // Draw
         renderPass.DrawIndexed(static_cast<uint32_t>(mesh->getIndexCount()), 1, 0, 0, 0);
     }
+}
+
+// ========== Selection Management ==========
+
+void Scene::setSelectedObject(SceneObject* object) {
+    // Deselect previous object
+    if (selectedObject) {
+        selectedObject->setSelected(false);
+    }
+    
+    // Select new object
+    selectedObject = object;
+    if (selectedObject) {
+        selectedObject->setSelected(true);
+    }
+}
+
+// ========== Bounding Box Rendering ==========
+
+bool Scene::createBoundingBoxPipeline() {
+    // Load line shaders
+    wgpu::ShaderModule vertexShaderModule = shaderManager->loadShader("render/line_vertex.wgsl");
+    wgpu::ShaderModule fragmentShaderModule = shaderManager->loadShader("render/line_fragment.wgsl");
+    
+    if (!vertexShaderModule || !fragmentShaderModule) {
+        std::cerr << "[ERROR] Failed to load line shaders" << std::endl;
+        return false;
+    }
+    
+    // Vertex buffer layout - only position needed for lines
+    wgpu::VertexAttribute vertexAttribute{};
+    vertexAttribute.format = wgpu::VertexFormat::Float32x3;
+    vertexAttribute.offset = 0;
+    vertexAttribute.shaderLocation = 0;
+    
+    wgpu::VertexBufferLayout vertexBufferLayout{};
+    vertexBufferLayout.arrayStride = sizeof(float) * 3; // x, y, z
+    vertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
+    vertexBufferLayout.attributeCount = 1;
+    vertexBufferLayout.attributes = &vertexAttribute;
+    
+    // Pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc{};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts = &bindGroupLayout; // Reuse same layout
+    wgpu::PipelineLayout pipelineLayout = device->CreatePipelineLayout(&layoutDesc);
+    
+    // Create render pipeline for lines
+    wgpu::RenderPipelineDescriptor pipelineDesc{};
+    pipelineDesc.layout = pipelineLayout;
+    
+    // Vertex stage
+    pipelineDesc.vertex.module = vertexShaderModule;
+    pipelineDesc.vertex.entryPoint = "main";
+    pipelineDesc.vertex.bufferCount = 1;
+    pipelineDesc.vertex.buffers = &vertexBufferLayout;
+    
+    // Fragment stage
+    wgpu::FragmentState fragmentState{};
+    fragmentState.module = fragmentShaderModule;
+    fragmentState.entryPoint = "main";
+    
+    wgpu::ColorTargetState colorTarget{};
+    colorTarget.format = wgpu::TextureFormat::BGRA8Unorm;
+    colorTarget.writeMask = wgpu::ColorWriteMask::All;
+    
+    // Enable blending for transparency
+    wgpu::BlendState blendState{};
+    blendState.color.operation = wgpu::BlendOperation::Add;
+    blendState.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
+    blendState.color.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
+    blendState.alpha.operation = wgpu::BlendOperation::Add;
+    blendState.alpha.srcFactor = wgpu::BlendFactor::One;
+    blendState.alpha.dstFactor = wgpu::BlendFactor::Zero;
+    colorTarget.blend = &blendState;
+    
+    fragmentState.targetCount = 1;
+    fragmentState.targets = &colorTarget;
+    pipelineDesc.fragment = &fragmentState;
+    
+    // Primitive state - LINE LIST topology
+    pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::LineList;
+    pipelineDesc.primitive.stripIndexFormat = wgpu::IndexFormat::Undefined;
+    pipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
+    pipelineDesc.primitive.cullMode = wgpu::CullMode::None; // Don't cull lines
+    
+    // Depth/stencil state
+    wgpu::DepthStencilState depthStencilState{};
+    depthStencilState.format = wgpu::TextureFormat::Depth24Plus;
+    depthStencilState.depthWriteEnabled = false; // Don't write to depth buffer
+    depthStencilState.depthCompare = wgpu::CompareFunction::Less; // Still test against depth
+    pipelineDesc.depthStencil = &depthStencilState;
+    
+    // Multisample state
+    pipelineDesc.multisample.count = 1;
+    pipelineDesc.multisample.mask = 0xFFFFFFFF;
+    pipelineDesc.multisample.alphaToCoverageEnabled = false;
+    
+    boundingBoxPipeline = device->CreateRenderPipeline(&pipelineDesc);
+    if (!boundingBoxPipeline) {
+        std::cerr << "[ERROR] Failed to create bounding box pipeline" << std::endl;
+        return false;
+    }
+    
+    return true;
+}
+
+bool Scene::createBoundingBoxGeometry() {
+    // Create vertices for unit cube (will be transformed by object's bounds)
+    // 8 vertices of a unit cube centered at origin
+    float vertices[] = {
+        -0.5f, -0.5f, -0.5f,  // 0: left  bottom back
+         0.5f, -0.5f, -0.5f,  // 1: right bottom back
+         0.5f,  0.5f, -0.5f,  // 2: right top    back
+        -0.5f,  0.5f, -0.5f,  // 3: left  top    back
+        -0.5f, -0.5f,  0.5f,  // 4: left  bottom front
+         0.5f, -0.5f,  0.5f,  // 5: right bottom front
+         0.5f,  0.5f,  0.5f,  // 6: right top    front
+        -0.5f,  0.5f,  0.5f   // 7: left  top    front
+    };
+    
+    // Create indices for 12 edges (24 indices for line list)
+    uint32_t indices[] = {
+        // Back face
+        0, 1,  1, 2,  2, 3,  3, 0,
+        // Front face
+        4, 5,  5, 6,  6, 7,  7, 4,
+        // Connecting edges
+        0, 4,  1, 5,  2, 6,  3, 7
+    };
+    
+    boundingBoxIndexCount = sizeof(indices) / sizeof(uint32_t);
+    
+    // Create vertex buffer
+    wgpu::BufferDescriptor vertexBufferDesc{};
+    vertexBufferDesc.size = sizeof(vertices);
+    vertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
+    boundingBoxVertexBuffer = device->CreateBuffer(&vertexBufferDesc);
+    
+    if (!boundingBoxVertexBuffer) {
+        std::cerr << "[ERROR] Failed to create bounding box vertex buffer" << std::endl;
+        return false;
+    }
+    
+    device->GetQueue().WriteBuffer(boundingBoxVertexBuffer, 0, vertices, sizeof(vertices));
+    
+    // Create index buffer
+    wgpu::BufferDescriptor indexBufferDesc{};
+    indexBufferDesc.size = sizeof(indices);
+    indexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
+    boundingBoxIndexBuffer = device->CreateBuffer(&indexBufferDesc);
+    
+    if (!boundingBoxIndexBuffer) {
+        std::cerr << "[ERROR] Failed to create bounding box index buffer" << std::endl;
+        return false;
+    }
+    
+    device->GetQueue().WriteBuffer(boundingBoxIndexBuffer, 0, indices, sizeof(indices));
+    
+    return true;
+}
+
+void Scene::renderBoundingBox(wgpu::RenderPassEncoder& renderPass, const SceneObject& object) {
+    if (!boundingBoxPipeline || !boundingBoxVertexBuffer || !boundingBoxIndexBuffer) {
+        return;
+    }
+
+    // Get world bounds
+    Vec3 minBound, maxBound;
+    object.getWorldBounds(minBound, maxBound);
+
+    // Calculate center and size
+    Vec3 center = (minBound + maxBound) * 0.5f;
+    Vec3 size = maxBound - minBound;
+
+    // Create transform matrix for bounding box
+    Mat4 boxTransform = Mat4::translation(center) * Mat4::scale(size);
+
+    // Update uniforms for bounding box
+    ObjectUniforms uniforms;
+    uniforms.viewProj = camera->getViewProjectionMatrix();
+    uniforms.model = boxTransform;
+    uniforms.time = 0.0f;
+
+    // Use the last available slot (MAX_OBJECTS - 1) to avoid overwriting object uniforms
+    // This ensures we don't corrupt any object's uniform data
+    uint32_t boundingBoxSlot = MAX_OBJECTS - 1;
+    uint32_t boundingBoxOffset = static_cast<uint32_t>(boundingBoxSlot * alignedUniformSize);
+    device->GetQueue().WriteBuffer(uniformBuffer, boundingBoxOffset, &uniforms, sizeof(ObjectUniforms));
+
+    // Set pipeline and bind group
+    renderPass.SetPipeline(boundingBoxPipeline);
+    renderPass.SetBindGroup(0, bindGroup, 1, &boundingBoxOffset);
+
+    // Set vertex and index buffers
+    renderPass.SetVertexBuffer(0, boundingBoxVertexBuffer);
+    renderPass.SetIndexBuffer(boundingBoxIndexBuffer, wgpu::IndexFormat::Uint32);
+
+    // Draw lines
+    renderPass.DrawIndexed(boundingBoxIndexCount, 1, 0, 0, 0);
 }
 
 } // namespace rendering

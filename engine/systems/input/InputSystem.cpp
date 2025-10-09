@@ -1,6 +1,7 @@
 #include "InputSystem.h"
 #include "../../core/Engine.h"
 #include "../application/ApplicationSystem.h"
+#include "../rendering/RenderSystem.h"
 #include "../../rendering/scene/Camera.h"
 #include <iostream>
 
@@ -35,14 +36,21 @@ void InputSystem::onStart() {
 }
 
 void InputSystem::onUpdate(float deltaTime) {
-    // Update input states (Pressed -> Held, JustReleased -> Released)
-    updateStates();
-    
     // Update mouse delta
     mouseDeltaX = mouseX - prevMouseX;
     mouseDeltaY = mouseY - prevMouseY;
     prevMouseX = mouseX;
     prevMouseY = mouseY;
+    
+    // Handle object picking with left mouse button (BEFORE updateStates!)
+    // Important: Check Pressed state before it transitions to Held
+    if (isMouseButtonPressed(MouseButton::Left)) {
+        handleObjectPicking();
+    }
+    
+    // Update input states (Pressed -> Held, JustReleased -> Released)
+    // This MUST come after checking for Pressed states
+    updateStates();
     
     // Update camera controller BEFORE resetting scroll
     // (camera controller needs to read scroll delta)
@@ -472,5 +480,49 @@ void InputSystem::setupWebEventHandlers() {
 }
 
 #endif
+
+// ========== Object Picking ==========
+
+void InputSystem::handleObjectPicking() {
+    auto* renderSystem = engine->getSystem<RenderSystem>();
+    if (!renderSystem) return;
+    
+#ifndef __EMSCRIPTEN__
+    // Native: Only pick if mouse is over viewport (not over ImGui widgets)
+    auto* guiManager = renderSystem->getGUI();
+    if (!guiManager) return;
+    
+    const auto& viewport = guiManager->getViewportState();
+    if (!viewport.isHovered) {
+        // Mouse is over ImGui UI, not the viewport
+        return;
+    }
+    
+    std::cout << "[Picking] Handling object picking (viewport: " 
+              << viewport.width << "x" << viewport.height << ")..." << std::endl;
+#else
+    // Web: Direct picking (no ImGui)
+    std::cout << "[Picking] Handling object picking..." << std::endl;
+#endif
+    
+    // Get mouse position
+    double clickX = mouseX;
+    double clickY = mouseY;
+    
+    // Perform picking
+    auto* selectedObject = renderSystem->pickObject(
+        static_cast<float>(clickX),
+        static_cast<float>(clickY)
+    );
+    
+    // Update selection
+    renderSystem->setSelectedObject(selectedObject);
+    
+    if (selectedObject) {
+        std::cout << "[Picking] Selected object: " << selectedObject->getName() << std::endl;
+    } else {
+        std::cout << "[Picking] No object selected (clicked on empty space)" << std::endl;
+    }
+}
 
 } // namespace rs_engine

@@ -10,23 +10,33 @@ namespace rs_engine {
 namespace rendering {
 
 /**
- * @brief Scene Object - An object in the 3D scene
+ * @brief Scene Object - An instance of a Model in the 3D scene
  * 
- * A SceneObject represents an entity in the scene with:
- * - Transform (position, rotation, scale)
- * - Model reference (from ResourceManager)
- * - Animation state
+ * Architecture:
+ * - SceneObject owns Transform (position, rotation, scale)
+ * - SceneObject references Model (shared resource: geometry + material)
+ * - Multiple SceneObjects can share the same Model with different transforms
  * 
- * This replaces the temporary CubeObject class with a proper
- * resource-based architecture.
+ * Example:
+ *   auto cubeModel = resourceManager->getModel("cube");
+ *   auto obj1 = std::make_unique<SceneObject>("Cube1");
+ *   obj1->setModel(cubeModel);
+ *   obj1->setPosition(Vec3(0, 0, 0));  // Independent transform
+ * 
+ *   auto obj2 = std::make_unique<SceneObject>("Cube2");
+ *   obj2->setModel(cubeModel);           // Same model
+ *   obj2->setPosition(Vec3(5, 0, 0));    // Different transform
+ * 
+ * This follows the Unity/Unreal pattern: GameObject + MeshRenderer
  */
 class SceneObject {
 private:
     std::string name;
-    resource::Transform transform;
-    std::shared_ptr<resource::Model> model;
+    resource::Transform transform;              // ✅ SceneObject owns Transform
+    std::shared_ptr<resource::Model> model;     // ✅ Shared Model reference
     float animationTime = 0.0f;
     bool isVisible = true;
+    bool isSelected = false;  // Selection state for picking
 
 public:
     SceneObject(const std::string& objName = "Object")
@@ -69,6 +79,20 @@ public:
     
     void setVisible(bool visible) { isVisible = visible; }
     bool getVisible() const { return isVisible; }
+    
+    // ========== Selection ==========
+    
+    void setSelected(bool selected) { isSelected = selected; }
+    bool getSelected() const { return isSelected; }
+    
+    // ========== Bounding Volume ==========
+    
+    /**
+     * @brief Get world-space axis-aligned bounding box
+     * @param min Output: minimum corner in world space
+     * @param max Output: maximum corner in world space
+     */
+    void getWorldBounds(Vec3& min, Vec3& max) const;
 };
 
 } // namespace rendering

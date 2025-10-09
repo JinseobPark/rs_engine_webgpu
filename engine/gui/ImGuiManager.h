@@ -92,6 +92,19 @@ private:
     };
     SelectedObjectType m_selectedObjectType = SelectedObjectType::None;
     int m_selectedObjectIndex = -1;  // For cubes: 0, 1, 2
+    
+    // Viewport state (for picking)
+    struct ViewportState {
+        float width = 0.0f;
+        float height = 0.0f;
+        float posX = 0.0f;      // Viewport position in window
+        float posY = 0.0f;
+        bool isHovered = false;  // Is mouse over viewport?
+    };
+    ViewportState m_viewportState;
+
+public:
+    const ViewportState& getViewportState() const { return m_viewportState; }
 };
 
 } // namespace gui

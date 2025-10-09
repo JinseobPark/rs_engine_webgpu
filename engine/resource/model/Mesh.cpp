@@ -134,43 +134,90 @@ Mesh* Mesh::createCube(const std::string& name, float size) {
     
     float half = size * 0.5f;
     
-    // 8 vertices (cube corners)
-    // Position convention: X = right, Y = up, Z = forward
-    std::vector<Vertex> vertices = {
-        // Front face (Z+)
-        {{-half, -half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 0: front-bottom-left
-        {{ half, -half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 1: front-bottom-right
-        {{ half,  half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 2: front-top-right
-        {{-half,  half,  half}, {0, 0, 0}, {0, 0, 0}, {1, 0, 0}},  // 3: front-top-left
+    // Create vertices with proper normals for each face
+    // Each face needs duplicate vertices because each vertex has a different normal per face
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+    
+    // Helper to add a quad face
+    auto addQuad = [&](const Vec3& v0, const Vec3& v1, const Vec3& v2, const Vec3& v3, 
+                       const Vec3& normal, const Vec3& color) {
+        uint32_t baseIndex = static_cast<uint32_t>(vertices.size());
         
-        // Back face (Z-)
-        {{-half, -half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 4: back-bottom-left
-        {{ half, -half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 5: back-bottom-right
-        {{ half,  half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 6: back-top-right
-        {{-half,  half, -half}, {0, 0, 0}, {0, 0, 0}, {0, 1, 0}},  // 7: back-top-left
+        vertices.emplace_back(v0, normal, Vec3(0, 0, 0), color);
+        vertices.emplace_back(v1, normal, Vec3(1, 0, 0), color);
+        vertices.emplace_back(v2, normal, Vec3(1, 1, 0), color);
+        vertices.emplace_back(v3, normal, Vec3(0, 1, 0), color);
+        
+        // Two triangles (CCW winding)
+        indices.push_back(baseIndex + 0);
+        indices.push_back(baseIndex + 1);
+        indices.push_back(baseIndex + 2);
+        
+        indices.push_back(baseIndex + 2);
+        indices.push_back(baseIndex + 3);
+        indices.push_back(baseIndex + 0);
     };
     
-    // 36 indices (6 faces × 2 triangles × 3 vertices)
-    // All faces wound counter-clockwise when viewed from outside
-    std::vector<uint32_t> indices = {
-        // Front face (Z+): looking at front from outside
-        0, 1, 2,  2, 3, 0,
-        
-        // Back face (Z-): looking at back from outside
-        5, 4, 7,  7, 6, 5,
-        
-        // Left face (X-): looking at left from outside
-        4, 0, 3,  3, 7, 4,
-        
-        // Right face (X+): looking at right from outside
-        1, 5, 6,  6, 2, 1,
-        
-        // Top face (Y+): looking at top from outside
-        3, 2, 6,  6, 7, 3,
-        
-        // Bottom face (Y-): looking at bottom from outside
-        4, 5, 1,  1, 0, 4,
-    };
+    // Front face (Z+)
+    addQuad(
+        Vec3(-half, -half,  half),  // bottom-left
+        Vec3( half, -half,  half),  // bottom-right
+        Vec3( half,  half,  half),  // top-right
+        Vec3(-half,  half,  half),  // top-left
+        Vec3(0, 0, 1),              // normal pointing forward
+        Vec3(1, 0, 0)               // red
+    );
+    
+    // Back face (Z-)
+    addQuad(
+        Vec3( half, -half, -half),  // bottom-right (flipped for CCW)
+        Vec3(-half, -half, -half),  // bottom-left
+        Vec3(-half,  half, -half),  // top-left
+        Vec3( half,  half, -half),  // top-right
+        Vec3(0, 0, -1),             // normal pointing backward
+        Vec3(0, 1, 0)               // green
+    );
+    
+    // Left face (X-)
+    addQuad(
+        Vec3(-half, -half, -half),  // bottom-back
+        Vec3(-half, -half,  half),  // bottom-front
+        Vec3(-half,  half,  half),  // top-front
+        Vec3(-half,  half, -half),  // top-back
+        Vec3(-1, 0, 0),             // normal pointing left
+        Vec3(0, 0, 1)               // blue
+    );
+    
+    // Right face (X+)
+    addQuad(
+        Vec3(half, -half,  half),   // bottom-front
+        Vec3(half, -half, -half),   // bottom-back
+        Vec3(half,  half, -half),   // top-back
+        Vec3(half,  half,  half),   // top-front
+        Vec3(1, 0, 0),              // normal pointing right
+        Vec3(1, 1, 0)               // yellow
+    );
+    
+    // Top face (Y+)
+    addQuad(
+        Vec3(-half, half,  half),   // front-left
+        Vec3( half, half,  half),   // front-right
+        Vec3( half, half, -half),   // back-right
+        Vec3(-half, half, -half),   // back-left
+        Vec3(0, 1, 0),              // normal pointing up
+        Vec3(1, 0, 1)               // magenta
+    );
+    
+    // Bottom face (Y-)
+    addQuad(
+        Vec3(-half, -half, -half),  // back-left
+        Vec3( half, -half, -half),  // back-right
+        Vec3( half, -half,  half),  // front-right
+        Vec3(-half, -half,  half),  // front-left
+        Vec3(0, -1, 0),             // normal pointing down
+        Vec3(0, 1, 1)               // cyan
+    );
     
     mesh->setVertices(vertices);
     mesh->setIndices(indices);
@@ -233,26 +280,28 @@ Mesh* Mesh::createSphere(const std::string& name, float radius, int segments) {
 
 Mesh* Mesh::createPlane(const std::string& name, float width, float height) {
     Mesh* mesh = new Mesh(name);
-    
+
     float halfW = width * 0.5f;
     float halfH = height * 0.5f;
-    
+
+    // Create plane at y=0 with 4 vertices
+    // Note: We keep vertices at y=0, but bounds will be expanded slightly for picking
     std::vector<Vertex> vertices = {
         {{-halfW, 0, -halfH}, {0, 1, 0}, {0, 0, 0}, {1, 1, 1}},
         {{-halfW, 0,  halfH}, {0, 1, 0}, {0, 1, 0}, {1, 1, 1}},
         {{ halfW, 0,  halfH}, {0, 1, 0}, {1, 1, 0}, {1, 1, 1}},
         {{ halfW, 0, -halfH}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1}},
     };
-    
+
     std::vector<uint32_t> indices = {
         0, 1, 2,
         0, 2, 3
     };
-    
+
     mesh->setVertices(vertices);
     mesh->setIndices(indices);
     mesh->load();
-    
+
     return mesh;
 }
 
@@ -261,18 +310,48 @@ void Mesh::calculateBounds(Vec3& min, Vec3& max) const {
         min = max = Vec3(0, 0, 0);
         return;
     }
-    
+
     min = max = vertices[0].position;
-    
+
     for (const auto& vertex : vertices) {
         min.x = std::min(min.x, vertex.position.x);
         min.y = std::min(min.y, vertex.position.y);
         min.z = std::min(min.z, vertex.position.z);
-        
+
         max.x = std::max(max.x, vertex.position.x);
         max.y = std::max(max.y, vertex.position.y);
         max.z = std::max(max.z, vertex.position.z);
     }
+
+    // Expand bounds by padding to prevent bounding box edges from overlapping with object surface
+    // This padding is applied to ALL objects (not just flat ones) to create visual separation
+    constexpr float BBOX_PADDING = 0.02f;  // Padding applied to all sides
+
+    // First ensure minimum thickness for flat objects (like planes)
+    constexpr float MIN_THICKNESS = 0.02f;
+    if (max.x - min.x < MIN_THICKNESS) {
+        float center = (min.x + max.x) * 0.5f;
+        min.x = center - MIN_THICKNESS * 0.5f;
+        max.x = center + MIN_THICKNESS * 0.5f;
+    }
+    if (max.y - min.y < MIN_THICKNESS) {
+        float center = (min.y + max.y) * 0.5f;
+        min.y = center - MIN_THICKNESS * 0.5f;
+        max.y = center + MIN_THICKNESS * 0.5f;
+    }
+    if (max.z - min.z < MIN_THICKNESS) {
+        float center = (min.z + max.z) * 0.5f;
+        min.z = center - MIN_THICKNESS * 0.5f;
+        max.z = center + MIN_THICKNESS * 0.5f;
+    }
+
+    // Then expand all bounds by padding (for all objects including cubes, spheres, etc.)
+    min.x -= BBOX_PADDING;
+    min.y -= BBOX_PADDING;
+    min.z -= BBOX_PADDING;
+    max.x += BBOX_PADDING;
+    max.y += BBOX_PADDING;
+    max.z += BBOX_PADDING;
 }
 
 void Mesh::calculateNormals() {

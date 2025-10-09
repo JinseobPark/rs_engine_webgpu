@@ -61,6 +61,20 @@ struct Vec3 {
         }
         return Vec3(0, 0, 0);
     }
+    
+    // Alias for normalize (for consistency)
+    Vec3 normalized() const {
+        return normalize();
+    }
+    
+    // Array access operator
+    float operator[](int index) const {
+        return (index == 0) ? x : (index == 1) ? y : z;
+    }
+    
+    float& operator[](int index) {
+        return (index == 0) ? x : (index == 1) ? y : z;
+    }
 };
 
 } // namespace rs_engine

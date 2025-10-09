@@ -739,48 +739,113 @@ void ImGuiManager::showHierarchy() {
 
     ImGui::Text("Scene Hierarchy");
     ImGui::Separator();
+    
+    // Get scene from RenderSystem
+    rendering::Scene* scene = nullptr;
+    if (m_renderSystem) {
+        scene = m_renderSystem->getScene();
+    }
+    
+    if (!scene) {
+        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "No scene available");
+        ImGui::End();
+        return;
+    }
+    
+    // Get all scene objects
+    const auto& allObjects = scene->getAllObjects();
+    rendering::SceneObject* selectedObject = scene->getSelectedObject();
 
     // Scene tree structure
-    if (ImGui::TreeNode("Scene")) {
+    if (ImGui::TreeNodeEx("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Display object count
+        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Objects: %zu", allObjects.size());
+        ImGui::Separator();
+        
         // Main Camera - selectable
-        ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        ImGuiTreeNodeFlags cameraFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
         if (m_selectedObjectType == SelectedObjectType::Camera) {
-            node_flags |= ImGuiTreeNodeFlags_Selected;
+            cameraFlags |= ImGuiTreeNodeFlags_Selected;
         }
         
-        if (ImGui::TreeNodeEx("Main Camera", node_flags)) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.8f, 1.0f, 1.0f));
+        if (ImGui::TreeNodeEx("Main Camera", cameraFlags, "📷 Main Camera")) {
             if (ImGui::IsItemClicked()) {
                 m_selectedObjectType = SelectedObjectType::Camera;
                 m_selectedObjectIndex = -1;
+                scene->clearSelection();
             }
         }
+        ImGui::PopStyleColor();
         
-        if (ImGui::TreeNode("Lighting")) {
-            if (ImGui::TreeNode("Directional Light")) {
-                ImGui::Text("Transform");
-                ImGui::Text("Light Component");
-                ImGui::TreePop();
+        // Scene Objects
+        if (!allObjects.empty()) {
+            ImGui::Separator();
+            
+            for (const auto& [name, objectPtr] : allObjects) {
+                if (!objectPtr) continue;
+                
+                // Check if this object is selected
+                bool isSelected = (selectedObject == objectPtr.get());
+                
+                // Node flags
+                ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+                if (isSelected) {
+                    nodeFlags |= ImGuiTreeNodeFlags_Selected;
+                }
+                
+                // Visibility icon
+                const char* visibilityIcon = objectPtr->getVisible() ? "👁" : "🚫";
+                
+                // Mesh icon
+                const char* meshIcon = objectPtr->hasModel() ? "🧊" : "📦";
+                
+                // Display object
+                std::string label = std::string(meshIcon) + " " + name;
+                if (!objectPtr->getVisible()) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                }
+                
+                if (ImGui::TreeNodeEx(objectPtr.get(), nodeFlags, "%s", label.c_str())) {
+                    if (ImGui::IsItemClicked()) {
+                        scene->setSelectedObject(objectPtr.get());
+                        m_selectedObjectType = SelectedObjectType::None;
+                    }
+                }
+                
+                if (!objectPtr->getVisible()) {
+                    ImGui::PopStyleColor();
+                }
+                
+                // Context menu
+                if (ImGui::BeginPopupContextItem()) {
+                    ImGui::Text("Object: %s", name.c_str());
+                    ImGui::Separator();
+                    
+                    bool visible = objectPtr->getVisible();
+                    if (ImGui::MenuItem(visible ? "Hide" : "Show")) {
+                        objectPtr->setVisible(!visible);
+                    }
+                    
+                    if (ImGui::MenuItem("Focus")) {
+                        scene->setSelectedObject(objectPtr.get());
+                    }
+                    
+                    ImGui::Separator();
+                    
+                    if (ImGui::MenuItem("Delete", "Del")) {
+                        scene->removeObject(name);
+                        if (isSelected) {
+                            scene->clearSelection();
+                        }
+                    }
+                    
+                    ImGui::EndPopup();
+                }
             }
-            ImGui::TreePop();
-        }
-        
-        if (ImGui::TreeNode("Geometry")) {
-            if (ImGui::TreeNode("Cube 1")) {
-                ImGui::Text("Transform");
-                ImGui::Text("Mesh Renderer");
-                ImGui::TreePop();
-            }
-            if (ImGui::TreeNode("Cube 2")) {
-                ImGui::Text("Transform");
-                ImGui::Text("Mesh Renderer");
-                ImGui::TreePop();
-            }
-            if (ImGui::TreeNode("Cube 3")) {
-                ImGui::Text("Transform");
-                ImGui::Text("Mesh Renderer");
-                ImGui::TreePop();
-            }
-            ImGui::TreePop();
+        } else {
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "No objects in scene");
+            ImGui::TextWrapped("Create objects using scene->createObject()");
         }
         
         ImGui::TreePop();
@@ -794,9 +859,93 @@ void ImGuiManager::showInspector() {
 
     ImGui::Text("Object Inspector");
     ImGui::Separator();
-
+    
+    // Get selected object from scene
+    rendering::SceneObject* selectedObject = nullptr;
+    if (m_renderSystem) {
+        selectedObject = m_renderSystem->getSelectedObject();
+    }
+    
+    // Display selected scene object if available
+    if (selectedObject) {
+        ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Selected: %s", selectedObject->getName().c_str());
+        ImGui::Separator();
+        
+        // Transform Component
+        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+            auto& transform = selectedObject->getTransform();
+            
+            // Position
+            Vec3 pos = transform.position;
+            float position[3] = {pos.x, pos.y, pos.z};
+            ImGui::Text("Position:");
+            if (ImGui::DragFloat3("##ObjectPosition", position, 0.1f)) {
+                selectedObject->setPosition(Vec3(position[0], position[1], position[2]));
+            }
+            
+            // Rotation (in degrees for UI)
+            Vec3 rot = transform.rotation;
+            constexpr float PI = 3.14159265358979323846f;
+            float rotation[3] = {
+                static_cast<float>(rot.x * 180.0f / PI),
+                static_cast<float>(rot.y * 180.0f / PI),
+                static_cast<float>(rot.z * 180.0f / PI)
+            };
+            ImGui::Text("Rotation:");
+            if (ImGui::DragFloat3("##ObjectRotation", rotation, 1.0f)) {
+                selectedObject->setRotation(Vec3(
+                    rotation[0] * PI / 180.0f,
+                    rotation[1] * PI / 180.0f,
+                    rotation[2] * PI / 180.0f
+                ));
+            }
+            
+            // Scale
+            Vec3 scl = transform.scale;
+            float scale[3] = {scl.x, scl.y, scl.z};
+            ImGui::Text("Scale:");
+            if (ImGui::DragFloat3("##ObjectScale", scale, 0.1f, 0.01f, 100.0f)) {
+                selectedObject->setScale(Vec3(scale[0], scale[1], scale[2]));
+            }
+        }
+        
+        // Model Info
+        if (selectedObject->hasModel()) {
+            if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen)) {
+                auto model = selectedObject->getModel();
+                ImGui::Text("Meshes: %zu", model->getMeshCount());
+                
+                Vec3 min, max;
+                selectedObject->getWorldBounds(min, max);
+                ImGui::Text("Bounds Min: (%.2f, %.2f, %.2f)", min.x, min.y, min.z);
+                ImGui::Text("Bounds Max: (%.2f, %.2f, %.2f)", max.x, max.y, max.z);
+            }
+        }
+        
+        // Visibility
+        if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen)) {
+            bool visible = selectedObject->getVisible();
+            if (ImGui::Checkbox("Visible", &visible)) {
+                selectedObject->setVisible(visible);
+            }
+            
+            float animTime = selectedObject->getAnimationTime();
+            if (ImGui::SliderFloat("Animation Time", &animTime, 0.0f, 10.0f)) {
+                selectedObject->setAnimationTime(animTime);
+            }
+        }
+        
+        ImGui::Separator();
+        
+        // Deselect button
+        if (ImGui::Button("Deselect")) {
+            if (m_renderSystem) {
+                m_renderSystem->clearSelection();
+            }
+        }
+    }
     // Display different content based on selected object
-    if (m_selectedObjectType == SelectedObjectType::Camera) {
+    else if (m_selectedObjectType == SelectedObjectType::Camera) {
         // Camera Inspector
         ImGui::Text("Main Camera");
         ImGui::Checkbox("Active", &m_showInspector); // Placeholder
@@ -1284,6 +1433,18 @@ void ImGuiManager::showSceneViewport() {
 
     // Get available region for rendering
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+    
+    // Update viewport state for picking
+    m_viewportState.width = viewportPanelSize.x;
+    m_viewportState.height = viewportPanelSize.y;
+    
+    // Get viewport position in window coordinates
+    ImVec2 viewportPos = ImGui::GetCursorScreenPos();
+    m_viewportState.posX = viewportPos.x;
+    m_viewportState.posY = viewportPos.y;
+    
+    // Check if mouse is hovering over viewport
+    m_viewportState.isHovered = ImGui::IsWindowHovered();
 
     // Get scene texture from RenderSystem
     wgpu::TextureView sceneTextureView = nullptr;

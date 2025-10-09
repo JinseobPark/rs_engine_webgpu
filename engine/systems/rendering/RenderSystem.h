@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/IEngineSystem.h"
+#include "../../core/math/Ray.h"
 #include "../../rendering/scene/Scene.h"
 #include "../../gui/ImGuiManager.h"
 #include <memory>
@@ -44,6 +45,8 @@ private:
     // Render target for ImGui viewport
     wgpu::Texture sceneRenderTexture = nullptr;
     wgpu::TextureView sceneRenderTextureView = nullptr;
+    wgpu::Texture sceneDepthTexture = nullptr;
+    wgpu::TextureView sceneDepthTextureView = nullptr;
     uint32_t sceneTextureWidth = 800;
     uint32_t sceneTextureHeight = 600;
 #endif
@@ -70,6 +73,31 @@ public:
     // Input system access (for GUI to control camera)
     InputSystem* getInputSystem() { return inputSystem; }
     
+    // ========== Object Picking ==========
+    
+    /**
+     * @brief Perform raycast picking from screen coordinates
+     * @param screenX Screen X coordinate (0 to window width)
+     * @param screenY Screen Y coordinate (0 to window height)
+     * @return Selected object or nullptr if no object hit
+     */
+    rendering::SceneObject* pickObject(float screenX, float screenY);
+    
+    /**
+     * @brief Get currently selected object
+     */
+    rendering::SceneObject* getSelectedObject();
+    
+    /**
+     * @brief Set selected object
+     */
+    void setSelectedObject(rendering::SceneObject* object);
+    
+    /**
+     * @brief Clear selection
+     */
+    void clearSelection();
+    
 #ifndef __EMSCRIPTEN__
     gui::ImGuiManager* getGUI() { return guiManager.get(); }
     wgpu::TextureView getSceneTextureView() const { return sceneRenderTextureView; }
@@ -78,6 +106,17 @@ public:
 #endif
 
 private:
+    /**
+     * @brief Create ray from screen coordinates
+     */
+    Ray createRayFromScreen(float screenX, float screenY) const;
+    
+    /**
+     * @brief Test ray intersection with object's triangles
+     * @return Distance to nearest intersection, or -1 if no hit
+     */
+    float intersectObjectTriangles(const Ray& ray, rendering::SceneObject* obj);
+    
     bool initializeScene();
     
 #ifndef __EMSCRIPTEN__

@@ -38,6 +38,9 @@ private:
     
     // Scene objects (name -> object)
     std::unordered_map<std::string, std::unique_ptr<SceneObject>> sceneObjects;
+    
+    // Selection management
+    SceneObject* selectedObject = nullptr;
 
     // Rendering resources (TEMPORARY - will be replaced with proper renderer)
     wgpu::RenderPipeline renderPipeline;
@@ -49,6 +52,12 @@ private:
     static constexpr uint32_t MAX_OBJECTS = 100;
     static constexpr uint32_t UNIFORM_ALIGNMENT = 256; // WebGPU alignment requirement
     uint32_t alignedUniformSize;
+    
+    // Bounding box rendering (for selection highlight)
+    wgpu::RenderPipeline boundingBoxPipeline;
+    wgpu::Buffer boundingBoxVertexBuffer;
+    wgpu::Buffer boundingBoxIndexBuffer;
+    uint32_t boundingBoxIndexCount = 0;
 
 public:
     Scene(wgpu::Device* dev, resource::ResourceManager* resMgr);
@@ -98,17 +107,46 @@ public:
      * @brief Get object count
      */
     size_t getObjectCount() const { return sceneObjects.size(); }
+    
+    /**
+     * @brief Get all scene objects (for iteration in picking)
+     */
+    const std::unordered_map<std::string, std::unique_ptr<SceneObject>>& getAllObjects() const {
+        return sceneObjects;
+    }
+    
+    // ========== Selection Management ==========
+    
+    /**
+     * @brief Set selected object
+     * @param object Object to select (or nullptr to clear selection)
+     */
+    void setSelectedObject(SceneObject* object);
+    
+    /**
+     * @brief Get currently selected object
+     */
+    SceneObject* getSelectedObject() { return selectedObject; }
+    
+    /**
+     * @brief Clear selection
+     */
+    void clearSelection() { setSelectedObject(nullptr); }
 
 private:
     bool createRenderingResources();
     bool createUniformBuffer();
     bool createBindGroupLayout();
     bool createRenderPipeline();
+    bool createBoundingBoxPipeline();
+    bool createBoundingBoxGeometry();
     void updateObjectUniforms(const SceneObject& object, size_t objectIndex);
     
     void renderObject(wgpu::RenderPassEncoder& renderPass, 
                      const SceneObject& object, 
                      size_t objectIndex);
+    void renderBoundingBox(wgpu::RenderPassEncoder& renderPass,
+                           const SceneObject& object);
 };
 
 } // namespace rendering

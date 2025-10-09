@@ -12,6 +12,16 @@ struct PlatformLimits {
     bool enableAdvancedFeatures;
 };
 
+/**
+ * @brief Object picking configuration
+ */
+struct PickingConfig {
+    // Always use AABB filtering then precise triangle intersection
+    uint32_t maxCandidates = 5;  // Test top N AABB candidates
+    
+    PickingConfig() = default;
+};
+
 class EngineConfig {
 private:
     static constexpr PlatformLimits getPlatformLimits() {
@@ -42,6 +52,11 @@ public:
 
     static uint32_t getOptimalParticleCount(float qualityLevel = 1.0f) {
         return static_cast<uint32_t>(getLimits().maxParticles * qualityLevel);
+    }
+    
+    static const PickingConfig& getPickingConfig() {
+        static PickingConfig config;
+        return config;
     }
 };
 

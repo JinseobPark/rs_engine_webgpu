@@ -256,6 +256,11 @@ private:
     void updateStates();
     
     /**
+     * @brief Handle object picking when left mouse button is clicked
+     */
+    void handleObjectPicking();
+    
+    /**
      * @brief Convert platform key code to KeyCode
      */
     KeyCode platformKeyToKeyCode(int platformKey) const;

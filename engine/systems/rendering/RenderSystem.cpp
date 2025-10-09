@@ -1,10 +1,15 @@
 #include "RenderSystem.h"
 #include "../../core/Engine.h"
+#include "../../core/Config.h"
+#include "../../core/math/Ray.h"
 #include "../application/ApplicationSystem.h"
 #include "../input/InputSystem.h"
 #include "../resource/ResourceSystem.h"
 #include <iostream>
 #include <cassert>
+#include <limits>
+#include <algorithm>
+#include <vector>
 
 namespace rs_engine {
 
@@ -80,6 +85,8 @@ void RenderSystem::onShutdown() {
     guiManager.reset();
     
     // 3. Then release render targets
+    sceneDepthTextureView = nullptr;
+    sceneDepthTexture = nullptr;
     sceneRenderTextureView = nullptr;
     sceneRenderTexture = nullptr;
 #endif
@@ -134,59 +141,99 @@ bool RenderSystem::initializeGUI() {
 }
 
 bool RenderSystem::createSceneRenderTarget() {
-    wgpu::TextureDescriptor textureDesc = {};
-    textureDesc.dimension = wgpu::TextureDimension::e2D;
-    textureDesc.format = wgpu::TextureFormat::BGRA8Unorm;
-    textureDesc.mipLevelCount = 1;
-    textureDesc.sampleCount = 1;
-    textureDesc.size = {sceneTextureWidth, sceneTextureHeight, 1};
-    textureDesc.usage = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
-    textureDesc.viewFormatCount = 0;
-    textureDesc.viewFormats = nullptr;
+    // Create color texture
+    wgpu::TextureDescriptor colorTextureDesc = {};
+    colorTextureDesc.dimension = wgpu::TextureDimension::e2D;
+    colorTextureDesc.format = wgpu::TextureFormat::BGRA8Unorm;
+    colorTextureDesc.mipLevelCount = 1;
+    colorTextureDesc.sampleCount = 1;
+    colorTextureDesc.size = {sceneTextureWidth, sceneTextureHeight, 1};
+    colorTextureDesc.usage = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
+    colorTextureDesc.viewFormatCount = 0;
+    colorTextureDesc.viewFormats = nullptr;
 
-    sceneRenderTexture = appSystem->getDevice().CreateTexture(&textureDesc);
+    sceneRenderTexture = appSystem->getDevice().CreateTexture(&colorTextureDesc);
     if (!sceneRenderTexture) {
-        std::cerr << "Failed to create scene render texture" << std::endl;
+        std::cerr << "[ERROR] Failed to create scene render texture" << std::endl;
         return false;
     }
 
-    wgpu::TextureViewDescriptor viewDesc = {};
-    viewDesc.format = textureDesc.format;
-    viewDesc.dimension = wgpu::TextureViewDimension::e2D;
-    viewDesc.baseMipLevel = 0;
-    viewDesc.mipLevelCount = 1;
-    viewDesc.baseArrayLayer = 0;
-    viewDesc.arrayLayerCount = 1;
+    wgpu::TextureViewDescriptor colorViewDesc = {};
+    colorViewDesc.format = colorTextureDesc.format;
+    colorViewDesc.dimension = wgpu::TextureViewDimension::e2D;
+    colorViewDesc.baseMipLevel = 0;
+    colorViewDesc.mipLevelCount = 1;
+    colorViewDesc.baseArrayLayer = 0;
+    colorViewDesc.arrayLayerCount = 1;
 
-    sceneRenderTextureView = sceneRenderTexture.CreateView(&viewDesc);
+    sceneRenderTextureView = sceneRenderTexture.CreateView(&colorViewDesc);
     if (!sceneRenderTextureView) {
-        std::cerr << "Failed to create scene render texture view" << std::endl;
+        std::cerr << "[ERROR] Failed to create scene render texture view" << std::endl;
+        return false;
+    }
+    
+    // Create depth texture
+    wgpu::TextureDescriptor depthTextureDesc = {};
+    depthTextureDesc.dimension = wgpu::TextureDimension::e2D;
+    depthTextureDesc.format = wgpu::TextureFormat::Depth24Plus;
+    depthTextureDesc.mipLevelCount = 1;
+    depthTextureDesc.sampleCount = 1;
+    depthTextureDesc.size = {sceneTextureWidth, sceneTextureHeight, 1};
+    depthTextureDesc.usage = wgpu::TextureUsage::RenderAttachment;
+    
+    sceneDepthTexture = appSystem->getDevice().CreateTexture(&depthTextureDesc);
+    if (!sceneDepthTexture) {
+        std::cerr << "[ERROR] Failed to create scene depth texture" << std::endl;
+        return false;
+    }
+    
+    wgpu::TextureViewDescriptor depthViewDesc = {};
+    depthViewDesc.format = depthTextureDesc.format;
+    depthViewDesc.dimension = wgpu::TextureViewDimension::e2D;
+    depthViewDesc.baseMipLevel = 0;
+    depthViewDesc.mipLevelCount = 1;
+    depthViewDesc.baseArrayLayer = 0;
+    depthViewDesc.arrayLayerCount = 1;
+    
+    sceneDepthTextureView = sceneDepthTexture.CreateView(&depthViewDesc);
+    if (!sceneDepthTextureView) {
+        std::cerr << "[ERROR] Failed to create scene depth texture view" << std::endl;
         return false;
     }
 
-    std::cout << "[SUCCESS] Scene render target created (" << sceneTextureWidth 
+    std::cout << "[SUCCESS] Scene render target created with depth buffer (" << sceneTextureWidth 
               << "x" << sceneTextureHeight << ")" << std::endl;
     return true;
 }
 
 void RenderSystem::renderToTexture() {
-    if (!sceneRenderTextureView) {
+    if (!sceneRenderTextureView || !sceneDepthTextureView) {
         return;
     }
 
     wgpu::CommandEncoderDescriptor encoderDesc = {};
     wgpu::CommandEncoder encoder = appSystem->getDevice().CreateCommandEncoder(&encoderDesc);
 
+    // Color attachment
     wgpu::RenderPassColorAttachment colorAttachment = {};
     colorAttachment.view = sceneRenderTextureView;
     colorAttachment.resolveTarget = nullptr;
     colorAttachment.loadOp = wgpu::LoadOp::Clear;
     colorAttachment.storeOp = wgpu::StoreOp::Store;
     colorAttachment.clearValue = {0.2, 0.3, 0.3, 1.0};
+    
+    // Depth attachment
+    wgpu::RenderPassDepthStencilAttachment depthAttachment = {};
+    depthAttachment.view = sceneDepthTextureView;
+    depthAttachment.depthLoadOp = wgpu::LoadOp::Clear;
+    depthAttachment.depthStoreOp = wgpu::StoreOp::Store;
+    depthAttachment.depthClearValue = 1.0f;
+    depthAttachment.depthReadOnly = false;
 
     wgpu::RenderPassDescriptor renderPassDesc = {};
     renderPassDesc.colorAttachmentCount = 1;
     renderPassDesc.colorAttachments = &colorAttachment;
+    renderPassDesc.depthStencilAttachment = &depthAttachment;
 
     wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
 
@@ -283,6 +330,221 @@ void RenderSystem::render() {
 
     appSystem->getSurface().Present();
 #endif
+}
+
+// ========== Object Picking ==========
+
+rendering::SceneObject* RenderSystem::pickObject(float screenX, float screenY) {
+    if (!scene) return nullptr;
+    
+    // Create ray from screen coordinates
+    Ray ray = createRayFromScreen(screenX, screenY);
+    
+    // Always use AABB + Triangle intersection (precise picking)
+    auto config = EngineConfig::getPickingConfig();
+    
+    // Phase 1: AABB filtering - collect candidates
+    struct Candidate {
+        rendering::SceneObject* object;
+        float aabbDistance;
+    };
+    std::vector<Candidate> candidates;
+    candidates.reserve(config.maxCandidates);
+    
+    for (const auto& [name, objectPtr] : scene->getAllObjects()) {
+        if (!objectPtr || !objectPtr->hasModel()) continue;
+
+        Vec3 min, max;
+        objectPtr->getWorldBounds(min, max);
+
+        float tMin, tMax;
+        if (ray.intersectAABB(min, max, tMin, tMax) && tMin >= 0) {
+            std::cout << "[Picking] " << name << " AABB hit at distance " << tMin
+                      << " (bounds: min=" << min.x << "," << min.y << "," << min.z
+                      << " max=" << max.x << "," << max.y << "," << max.z << ")" << std::endl;
+            candidates.push_back({objectPtr.get(), tMin});
+        } else {
+            std::cout << "[Picking] " << name << " AABB miss (bounds: min="
+                      << min.x << "," << min.y << "," << min.z
+                      << " max=" << max.x << "," << max.y << "," << max.z << ")" << std::endl;
+        }
+    }
+    
+    if (candidates.empty()) {
+        return nullptr;
+    }
+    
+    // Sort candidates by distance (closest first)
+    std::sort(candidates.begin(), candidates.end(),
+              [](const Candidate& a, const Candidate& b) {
+                  return a.aabbDistance < b.aabbDistance;
+              });
+    
+    // Limit to top N candidates for performance
+    if (candidates.size() > config.maxCandidates) {
+        candidates.resize(config.maxCandidates);
+    }
+    
+    // Phase 2: Precise triangle intersection test
+    rendering::SceneObject* closestObject = nullptr;
+    float closestDistance = std::numeric_limits<float>::max();
+    
+    for (const auto& candidate : candidates) {
+        float t = intersectObjectTriangles(ray, candidate.object);
+        
+        if (t >= 0 && t < closestDistance) {
+            closestDistance = t;
+            closestObject = candidate.object;
+        }
+    }
+    
+    // If no triangle intersection found, fall back to closest AABB candidate
+    if (!closestObject && !candidates.empty()) {
+        std::cout << "[Picking] No triangle hit, using closest AABB candidate" << std::endl;
+        closestObject = candidates[0].object;
+    }
+    
+    if (closestObject) {
+        std::cout << "[Picking] Precise hit at distance: " << closestDistance << std::endl;
+    }
+    
+    return closestObject;
+}
+
+float RenderSystem::intersectObjectTriangles(const Ray& ray, rendering::SceneObject* obj) {
+    if (!obj || !obj->hasModel()) {
+        return -1.0f;
+    }
+    
+    auto model = obj->getModel();
+    if (!model) {
+        return -1.0f;
+    }
+    
+    Mat4 modelMatrix = obj->getModelMatrix();
+    
+    float closestT = std::numeric_limits<float>::max();
+    bool hitFound = false;
+    
+    // Test each mesh in the model
+    for (const auto& mesh : model->getMeshes()) {
+        if (!mesh) continue;
+        
+        const auto& vertices = mesh->getVertices();
+        const auto& indices = mesh->getIndices();
+        
+        // Test each triangle
+        for (size_t i = 0; i < indices.size(); i += 3) {
+            // Get triangle vertices in model space
+            Vec3 v0 = vertices[indices[i]].position;
+            Vec3 v1 = vertices[indices[i + 1]].position;
+            Vec3 v2 = vertices[indices[i + 2]].position;
+            
+            // Transform to world space
+            Vec3 w0 = modelMatrix.transformPoint(v0);
+            Vec3 w1 = modelMatrix.transformPoint(v1);
+            Vec3 w2 = modelMatrix.transformPoint(v2);
+            
+            // Test intersection
+            float t;
+            if (ray.intersectTriangle(w0, w1, w2, t)) {
+                if (t < closestT) {
+                    closestT = t;
+                    hitFound = true;
+                }
+            }
+        }
+    }
+    
+    return hitFound ? closestT : -1.0f;
+}
+
+rendering::SceneObject* RenderSystem::getSelectedObject() {
+    return scene ? scene->getSelectedObject() : nullptr;
+}
+
+void RenderSystem::setSelectedObject(rendering::SceneObject* object) {
+    if (scene) {
+        scene->setSelectedObject(object);
+    }
+}
+
+void RenderSystem::clearSelection() {
+    if (scene) {
+        scene->clearSelection();
+    }
+}
+
+Ray RenderSystem::createRayFromScreen(float screenX, float screenY) const {
+    if (!appSystem || !scene) {
+        return Ray();
+    }
+    
+    // Get camera
+    auto* camera = scene->getCamera();
+    if (!camera) {
+        return Ray();
+    }
+    
+    float width, height;
+    float viewportOffsetX = 0.0f;
+    float viewportOffsetY = 0.0f;
+    
+#ifdef __EMSCRIPTEN__
+    // Web: Use full window size (no ImGui viewport)
+    width = static_cast<float>(appSystem->getWindowWidth());
+    height = static_cast<float>(appSystem->getWindowHeight());
+#else
+    // Native: Use ImGui viewport size and offset
+    if (guiManager) {
+        const auto& viewport = guiManager->getViewportState();
+        width = viewport.width;
+        height = viewport.height;
+        viewportOffsetX = viewport.posX;
+        viewportOffsetY = viewport.posY;
+    } else {
+        // Fallback to window size
+        width = static_cast<float>(appSystem->getWindowWidth());
+        height = static_cast<float>(appSystem->getWindowHeight());
+    }
+#endif
+    
+    if (width == 0.0f || height == 0.0f) {
+        return Ray();
+    }
+    
+    // CRITICAL: Always update aspect ratio before using projection matrix
+    float currentAspect = width / height;
+    const_cast<rendering::Camera*>(camera)->setAspectRatio(currentAspect);
+    
+    // Convert screen coordinates to viewport-relative coordinates
+    float viewportX = screenX - viewportOffsetX;
+    float viewportY = screenY - viewportOffsetY;
+    
+    // Convert viewport coordinates to NDC (-1 to 1)
+    // Note: Screen space origin is top-left, NDC origin is center
+    float ndcX = (2.0f * viewportX) / width - 1.0f;
+    float ndcY = 1.0f - (2.0f * viewportY) / height;  // Y is inverted
+    
+    // Get fresh view and projection matrices (after aspect ratio update)
+    Mat4 view = camera->getViewMatrix();
+    Mat4 proj = camera->getProjectionMatrix();
+    
+    // Combine and invert to get world space transform
+    Mat4 viewProj = proj * view;
+    Mat4 invViewProj = viewProj.inverse();
+    
+    // Create points in NDC space at near and far planes
+    // Near plane: -1 (OpenGL convention) or 0 (D3D convention)
+    // Using -1 for OpenGL-style NDC
+    Vec3 nearPoint = invViewProj.transformPoint(Vec3(ndcX, ndcY, -1.0f));
+    Vec3 farPoint = invViewProj.transformPoint(Vec3(ndcX, ndcY, 1.0f));
+    
+    // Create ray from camera origin through the point
+    Vec3 rayOrigin = nearPoint;
+    Vec3 rayDirection = (farPoint - nearPoint).normalized();
+    
+    return Ray(rayOrigin, rayDirection);
 }
 
 } // namespace rs_engine

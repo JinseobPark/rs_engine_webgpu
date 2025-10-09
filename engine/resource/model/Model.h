@@ -11,7 +11,7 @@ namespace rs_engine {
 namespace resource {
 
 /**
- * @brief Transform data for model instances
+ * @brief Transform data for scene object instances
  */
 struct Transform {
     Vec3 position = Vec3(0, 0, 0);
@@ -24,21 +24,27 @@ struct Transform {
 };
 
 /**
- * @brief Model resource - collection of meshes with transform
+ * @brief Model resource - collection of meshes (shared resource)
+ * 
+ * A Model is a shared resource that contains only geometry and material data.
+ * It does NOT own a Transform - that belongs to SceneObject instances.
  * 
  * A Model can contain:
  * - Single mesh (simple objects)
  * - Multiple meshes (complex objects with sub-parts)
  * - Hierarchy information (for articulated models)
  * 
+ * Architecture:
+ * - Model = Shared Resource (geometry + material)
+ * - SceneObject = Instance (transform + model reference)
+ * 
  * Platform Support: 100% shared
  */
 class Model : public IResource {
 private:
     std::vector<std::shared_ptr<Mesh>> meshes;
-    Transform transform;
     
-    // Bounding information
+    // Bounding information (in model space, origin-centered)
     Vec3 boundingMin;
     Vec3 boundingMax;
     bool boundsDirty = true;
@@ -62,21 +68,7 @@ public:
     std::shared_ptr<Mesh> getMesh(size_t index) const;
     const std::vector<std::shared_ptr<Mesh>>& getMeshes() const { return meshes; }
     
-    // ========== Transform ==========
-    
-    void setTransform(const Transform& trans) { transform = trans; }
-    const Transform& getTransform() const { return transform; }
-    Transform& getTransform() { return transform; }
-    
-    void setPosition(const Vec3& pos) { transform.position = pos; }
-    void setRotation(const Vec3& rot) { transform.rotation = rot; }
-    void setScale(const Vec3& scl) { transform.scale = scl; }
-    
-    const Vec3& getPosition() const { return transform.position; }
-    const Vec3& getRotation() const { return transform.rotation; }
-    const Vec3& getScale() const { return transform.scale; }
-    
-    // ========== Bounding Volume ==========
+    // ========== Bounding Volume (Model Space) ==========
     
     void calculateBounds();
     void getBounds(Vec3& min, Vec3& max);
