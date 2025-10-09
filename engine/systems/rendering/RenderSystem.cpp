@@ -73,29 +73,33 @@ void RenderSystem::onUpdate(float deltaTime) {
 
 void RenderSystem::onShutdown() {
     std::cout << "[Render] Shutting down..." << std::endl;
-    
+
 #ifndef __EMSCRIPTEN__
     // Shutdown in reverse order of initialization
     // 1. First explicitly shutdown GUI before destroying
     if (guiManager && guiManager->isInitialized()) {
         guiManager->shutdown();
     }
-    
+
     // 2. Then destroy GUI manager
     guiManager.reset();
-    
+
     // 3. Then release render targets
     sceneDepthTextureView = nullptr;
     sceneDepthTexture = nullptr;
     sceneRenderTextureView = nullptr;
     sceneRenderTexture = nullptr;
 #endif
-    
-    // 4. Finally shutdown scene
+
+    // 4. Release shared depth buffer
+    depthTextureView = nullptr;
+    depthTexture = nullptr;
+
+    // 5. Finally shutdown scene
     if (scene) {
         scene.reset();
     }
-    
+
     std::cout << "[Render] Shutdown complete" << std::endl;
 }
 
@@ -249,6 +253,51 @@ void RenderSystem::renderToTexture() {
 }
 #endif
 
+bool RenderSystem::ensureDepthTexture(uint32_t width, uint32_t height) {
+    // Check if we need to recreate depth texture
+    if (depthTexture && lastDepthTextureWidth == width && lastDepthTextureHeight == height) {
+        return true; // Already have correct size
+    }
+
+    // Release old depth texture
+    depthTextureView = nullptr;
+    depthTexture = nullptr;
+
+    // Create new depth texture
+    wgpu::TextureDescriptor depthTextureDesc = {};
+    depthTextureDesc.dimension = wgpu::TextureDimension::e2D;
+    depthTextureDesc.format = wgpu::TextureFormat::Depth24Plus;
+    depthTextureDesc.mipLevelCount = 1;
+    depthTextureDesc.sampleCount = 1;
+    depthTextureDesc.size = {width, height, 1};
+    depthTextureDesc.usage = wgpu::TextureUsage::RenderAttachment;
+
+    depthTexture = appSystem->getDevice().CreateTexture(&depthTextureDesc);
+    if (!depthTexture) {
+        std::cerr << "[ERROR] Failed to create depth texture" << std::endl;
+        return false;
+    }
+
+    wgpu::TextureViewDescriptor depthViewDesc = {};
+    depthViewDesc.format = depthTextureDesc.format;
+    depthViewDesc.dimension = wgpu::TextureViewDimension::e2D;
+    depthViewDesc.baseMipLevel = 0;
+    depthViewDesc.mipLevelCount = 1;
+    depthViewDesc.baseArrayLayer = 0;
+    depthViewDesc.arrayLayerCount = 1;
+
+    depthTextureView = depthTexture.CreateView(&depthViewDesc);
+    if (!depthTextureView) {
+        std::cerr << "[ERROR] Failed to create depth texture view" << std::endl;
+        return false;
+    }
+
+    lastDepthTextureWidth = width;
+    lastDepthTextureHeight = height;
+
+    return true;
+}
+
 void RenderSystem::render() {
 #ifdef __EMSCRIPTEN__
     // ===== WEB: Direct scene rendering (no ImGui, use HTML UI) =====
@@ -261,6 +310,14 @@ void RenderSystem::render() {
 
     wgpu::TextureView view = surfaceTexture.texture.CreateView();
 
+    // Ensure depth buffer matches surface size
+    uint32_t width = appSystem->getWindowWidth();
+    uint32_t height = appSystem->getWindowHeight();
+    if (!ensureDepthTexture(width, height)) {
+        std::cerr << "[ERROR] Failed to create depth texture for web render" << std::endl;
+        return;
+    }
+
     wgpu::CommandEncoderDescriptor encoderDesc = {};
     wgpu::CommandEncoder encoder = appSystem->getDevice().CreateCommandEncoder(&encoderDesc);
 
@@ -271,9 +328,18 @@ void RenderSystem::render() {
     colorAttachment.storeOp = wgpu::StoreOp::Store;
     colorAttachment.clearValue = {0.1, 0.1, 0.1, 1.0};
 
+    // Depth attachment
+    wgpu::RenderPassDepthStencilAttachment depthAttachment = {};
+    depthAttachment.view = depthTextureView;
+    depthAttachment.depthLoadOp = wgpu::LoadOp::Clear;
+    depthAttachment.depthStoreOp = wgpu::StoreOp::Store;
+    depthAttachment.depthClearValue = 1.0f;
+    depthAttachment.depthReadOnly = false;
+
     wgpu::RenderPassDescriptor renderPassDesc = {};
     renderPassDesc.colorAttachmentCount = 1;
     renderPassDesc.colorAttachments = &colorAttachment;
+    renderPassDesc.depthStencilAttachment = &depthAttachment;
 
     wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
 
@@ -286,7 +352,7 @@ void RenderSystem::render() {
     wgpu::CommandBufferDescriptor cmdBufferDesc = {};
     wgpu::CommandBuffer commands = encoder.Finish(&cmdBufferDesc);
     appSystem->getDevice().GetQueue().Submit(1, &commands);
-    
+
 #else
     // ===== NATIVE: Render to texture for ImGui viewport, then render GUI =====
     renderToTexture();

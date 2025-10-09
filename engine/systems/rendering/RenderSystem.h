@@ -39,9 +39,15 @@ private:
     
     std::unique_ptr<rendering::Scene> scene;
     
+    // Depth buffer (used on both web and native)
+    wgpu::Texture depthTexture = nullptr;
+    wgpu::TextureView depthTextureView = nullptr;
+    uint32_t lastDepthTextureWidth = 0;
+    uint32_t lastDepthTextureHeight = 0;
+
 #ifndef __EMSCRIPTEN__
     std::unique_ptr<gui::ImGuiManager> guiManager;
-    
+
     // Render target for ImGui viewport
     wgpu::Texture sceneRenderTexture = nullptr;
     wgpu::TextureView sceneRenderTextureView = nullptr;
@@ -110,21 +116,26 @@ private:
      * @brief Create ray from screen coordinates
      */
     Ray createRayFromScreen(float screenX, float screenY) const;
-    
+
     /**
      * @brief Test ray intersection with object's triangles
      * @return Distance to nearest intersection, or -1 if no hit
      */
     float intersectObjectTriangles(const Ray& ray, rendering::SceneObject* obj);
-    
+
+    /**
+     * @brief Create or recreate depth texture if size changed
+     */
+    bool ensureDepthTexture(uint32_t width, uint32_t height);
+
     bool initializeScene();
-    
+
 #ifndef __EMSCRIPTEN__
     bool initializeGUI();
     bool createSceneRenderTarget();
     void renderToTexture();
 #endif
-    
+
     void render();
 };
 
